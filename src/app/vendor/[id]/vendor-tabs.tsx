@@ -19,7 +19,7 @@ type VendorTabsProps = {
 
 export function VendorTabs({ activeTab, onChange }: VendorTabsProps) {
   return (
-    <nav className="mb-4 flex gap-2 text-sm" aria-label="Sections vendeur">
+    <nav className="mb-4 flex gap-2 overflow-x-auto pb-1 text-sm whitespace-nowrap" aria-label="Sections vendeur">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         return (

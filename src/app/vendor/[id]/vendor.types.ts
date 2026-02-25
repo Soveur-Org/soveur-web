@@ -52,6 +52,9 @@ export type VendorService = {
   images?: Array<{ id: string; url: string; order: number }>;
   serviceImages?: Array<{ id: string; url: string; order: number }>;
   visible: boolean;
+  serviceType?: "BOOKING" | "INSTANT" | string;
+  bookingLocationType?: "ONLINE" | "AT_STORE" | "AT_CLIENT" | string;
+  actionRadiusKm?: number | null;
 };
 
 export type ServiceCategoryGroup = {
@@ -83,4 +86,33 @@ export type CategoriesResponse = {
     total: number;
     totalPages: number;
   };
+};
+
+export type VendorReview = {
+  id: string;
+  rate?: number | null;
+  comment?: string | null;
+  createdAt?: string;
+  user?: {
+    id?: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    name?: string | null;
+  } | null;
+};
+
+export type BookingSlot = {
+  id: string;
+  label: string;
+  value: string;
+};
+
+export type ClientLocation = {
+  name: string;
+  street: string;
+  city: string;
+  zipcode: string;
+  country: string;
+  lng: number;
+  lat: number;
 };

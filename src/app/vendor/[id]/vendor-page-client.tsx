@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { translateCategoryNameToFrench } from "@/constants/category-translations";
-import type {
-  CategoriesResponse,
-  Category,
-  ServiceCategoryGroup,
-  Vendor,
-  VendorService,
-  VendorServicesResponse,
-} from "./vendor.types";
+import { StripePaymentModal } from "@/components/vendor/stripe-payment-modal";
+import { CustomerOrderModal } from "@/components/vendor/customer-order-modal";
+import { AboutTabContent } from "@/components/vendor/tabs/about-tab-content";
+import { GalleryTabContent } from "@/components/vendor/tabs/gallery-tab-content";
+import { ReviewsTabContent } from "@/components/vendor/tabs/reviews-tab-content";
+import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-content";
+import { useServiceCheckout } from "@/hooks/use-service-checkout";
+import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
+import type { Vendor, VendorService } from "./vendor.types";
 import { VendorTabs, type VendorTabId } from "./vendor-tabs";
 
 function toNumber(value: unknown): number | null {
@@ -21,7 +21,7 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
-function getOpenLabel(vendor: Vendor): string {
+function getOpenLabel(vendor: Vendor) {
   return vendor.visible ? "Ouvert" : "Ferme";
 }
 
@@ -68,7 +68,7 @@ function formatUtcSlotToLocal(
     baseSunday + weekDay * 24 * 60 * 60 * 1000 + (end.hour * 60 + end.minute) * 60 * 1000,
   );
 
-  const weekDayFormatter = new Intl.DateTimeFormat("fr-FR", {
+  const dayFormatter = new Intl.DateTimeFormat("fr-FR", {
     weekday: "long",
     timeZone,
   });
@@ -79,281 +79,91 @@ function formatUtcSlotToLocal(
     timeZone,
   });
 
-  const startDay = capitalizeFirst(weekDayFormatter.format(startUtc));
-  const endDay = capitalizeFirst(weekDayFormatter.format(endUtc));
-  const startLocal = timeFormatter.format(startUtc);
-  const endLocal = timeFormatter.format(endUtc);
-
-  const dayLabel = startDay === endDay ? startDay : `${startDay} / ${endDay}`;
-  return { dayLabel, startLocal, endLocal };
+  return {
+    dayLabel: capitalizeFirst(dayFormatter.format(startUtc)),
+    startLabel: timeFormatter.format(startUtc),
+    endLabel: timeFormatter.format(endUtc),
+  };
 }
 
-function getCategoryMeta(
-  service: VendorService,
-  categoryNamesById: Record<string, string>,
-): { id: string; name: string | null } {
-  if (typeof service.categoryId === "string" && service.categoryId.trim().length > 0) {
-    return {
-      id: service.categoryId,
-      name: categoryNamesById[service.categoryId] ?? null,
-    };
-  }
-
-  if (service.categoryId && typeof service.categoryId === "object") {
-    const objectId = service.categoryId.id ?? "uncategorized";
-    return {
-      id: objectId,
-      name:
-        translateCategoryNameToFrench(service.categoryId.name) ??
-        categoryNamesById[objectId] ??
-        "Sans categorie",
-    };
-  }
-
-  return { id: "uncategorized", name: "Sans categorie" };
-}
-
-function groupServicesByCategory(
-  services: VendorService[],
-  categoryNamesById: Record<string, string>,
-): ServiceCategoryGroup[] {
-  const groups = new Map<string, ServiceCategoryGroup & { hasResolvedName: boolean }>();
-
-  for (const service of services) {
-    const category = getCategoryMeta(service, categoryNamesById);
-    const existing = groups.get(category.id);
-
-    if (existing) {
-      existing.services.push(service);
-      continue;
-    }
-
-    groups.set(category.id, {
-      id: category.id,
-      name: category.name ?? "",
-      services: [service],
-      hasResolvedName: Boolean(category.name),
-    });
-  }
-
-  const ordered = Array.from(groups.values()).sort((a, b) => {
-    if (a.hasResolvedName && b.hasResolvedName) {
-      return a.name.localeCompare(b.name, "fr");
-    }
-    if (a.hasResolvedName) return -1;
-    if (b.hasResolvedName) return 1;
-    return a.id.localeCompare(b.id, "fr");
-  });
-
-  let unnamedCounter = 1;
-  return ordered.map((group) => {
-    if (group.hasResolvedName) {
-      return { id: group.id, name: group.name, services: group.services };
-    }
-
-    const fallbackName = `Categorie ${unnamedCounter}`;
-    unnamedCounter += 1;
-
-    return {
-      id: group.id,
-      name: fallbackName,
-      services: group.services,
-    };
-  });
-}
-
-function extractServicesFromPayload(payload: unknown): VendorService[] {
-  if (Array.isArray(payload)) {
-    return payload as VendorService[];
-  }
-
-  if (payload && typeof payload === "object") {
-    const typed = payload as VendorServicesResponse;
-    if (Array.isArray(typed.data)) {
-      return typed.data;
-    }
-  }
-
-  return [];
-}
-
-function extractCategoriesFromPayload(payload: unknown): Category[] {
-  if (Array.isArray(payload)) {
-    return payload as Category[];
-  }
-
-  if (payload && typeof payload === "object") {
-    const typed = payload as CategoriesResponse;
-    if (Array.isArray(typed.data)) {
-      return typed.data;
-    }
-  }
-
-  return [];
+function formatDate(value?: string) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
 }
 
 function formatServicePrice(service: VendorService) {
   if (typeof service.price !== "number") return null;
-  const currency = service.currency ?? "EUR";
-
   try {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency,
+      currency: service.currency ?? "EUR",
       maximumFractionDigits: 2,
     }).format(service.price);
   } catch {
-    return `${service.price} ${currency}`;
+    return `${service.price} ${service.currency ?? "EUR"}`;
   }
-}
-
-function formatServiceDuration(service: VendorService) {
-  if (typeof service.duration !== "number") return null;
-  if (!service.durationMetric) return `${service.duration}`;
-  return `${service.duration} ${service.durationMetric.toLowerCase()}`;
 }
 
 function getServiceImageUrl(service: VendorService): string | null {
-  if (typeof service.photo === "string" && service.photo.length > 0) {
-    return service.photo;
-  }
-
-  const firstImage =
+  if (service.photo) return service.photo;
+  const first =
     service.images?.slice().sort((a, b) => a.order - b.order)[0] ??
     service.serviceImages?.slice().sort((a, b) => a.order - b.order)[0];
-
-  return firstImage?.url ?? null;
+  return first?.url ?? null;
 }
 
 export function VendorPageClient({ vendor }: { vendor: Vendor }) {
-  const [activeImage, setActiveImage] = useState(0);
   const [activeTab, setActiveTab] = useState<VendorTabId>("about");
-  const [servicesState, setServicesState] = useState<"idle" | "loading" | "success" | "error">(
-    "idle",
-  );
-  const [servicesError, setServicesError] = useState<string | null>(null);
-  const [services, setServices] = useState<VendorService[]>([]);
-  const [categoryNamesById, setCategoryNamesById] = useState<Record<string, string>>({});
+  const [activeImage, setActiveImage] = useState(0);
   const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
   const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<{
     categoryId: string;
     service: VendorService;
   } | null>(null);
-  const timeZone = useMemo(
-    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-    [],
+
+  const { servicesState, servicesError, serviceCategories, reviewsState, reviewsError, reviews } =
+    useVendorTabsData(vendor.id, activeTab);
+
+  const checkout = useServiceCheckout(vendor.id, selectedService);
+
+  const openCategory = useMemo(
+    () => serviceCategories.find((category) => category.id === openCategoryId) ?? null,
+    [openCategoryId, serviceCategories],
   );
 
   const images = useMemo(
     () => (vendor.vendorImages ?? []).slice().sort((a, b) => a.order - b.order),
     [vendor.vendorImages],
   );
+  const userTimeZone = useMemo(
+    () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    [],
+  );
+  const weeklyAvailability = useMemo(
+    () =>
+      (vendor.availability?.slots ?? [])
+        .filter((slot) => slot.active)
+        .sort((a, b) => a.weekDay - b.weekDay)
+        .map((slot) => ({
+          id: slot.id,
+          ...formatUtcSlotToLocal(slot.weekDay, slot.startTime, slot.endTime, userTimeZone),
+        })),
+    [userTimeZone, vendor.availability?.slots],
+  );
 
   const lat = toNumber(vendor.location?.lat);
   const lng = toNumber(vendor.location?.lng);
-  const hasMap = lat !== null && lng !== null;
-  const bbox = hasMap ? `${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}` : null;
-  const mapUrl = hasMap
-    ? `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`
-    : null;
-
-  const slots = useMemo(
-    () =>
-      (vendor.availability?.slots?.filter((slot) => slot.active) ?? []).sort(
-        (a, b) => a.weekDay - b.weekDay,
-      ),
-    [vendor.availability?.slots],
-  );
-  const serviceCategories = useMemo(
-    () => groupServicesByCategory(services, categoryNamesById),
-    [services, categoryNamesById],
-  );
-  const openCategory = useMemo(
-    () => serviceCategories.find((category) => category.id === openCategoryId) ?? null,
-    [serviceCategories, openCategoryId],
-  );
-  const canReserve = Boolean(selectedService);
+  const mapUrl =
+    lat !== null && lng !== null
+      ? `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat}%2C${lng}`
+      : null;
 
   useEffect(() => {
-    if (activeTab !== "services" || servicesState !== "idle") return;
-
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-    if (!baseUrl) {
-      setServicesState("error");
-      setServicesError("NEXT_PUBLIC_API_BASE_URL est manquante.");
-      return;
+    if (checkout.bookingOpen && !checkout.selectedDate) {
+      checkout.setSelectedDate(checkout.defaultDate);
     }
-
-    let cancelled = false;
-
-    const fetchServices = async () => {
-      try {
-        setServicesState("loading");
-        setServicesError(null);
-
-        const [servicesResponse, categoriesResponse] = await Promise.allSettled([
-          fetch(`${baseUrl}/services/vendor/${vendor.id}?page=1&limit=100`, {
-            cache: "no-store",
-          }),
-          fetch(`${baseUrl}/categories?page=1&limit=100`, {
-            cache: "no-store",
-          }),
-        ]);
-
-        if (servicesResponse.status !== "fulfilled" || !servicesResponse.value.ok) {
-          throw new Error("Impossible de recuperer les services.");
-        }
-
-        const servicesPayload = (await servicesResponse.value.json()) as unknown;
-        const fetchedServices = extractServicesFromPayload(servicesPayload).filter(
-          (service) => service.visible !== false,
-        );
-        let categoryMap: Record<string, string> = {};
-
-        if (categoriesResponse.status === "fulfilled" && categoriesResponse.value.ok) {
-          const categoriesPayload = (await categoriesResponse.value.json()) as unknown;
-          const categories = extractCategoriesFromPayload(categoriesPayload);
-          categoryMap = categories.reduce<Record<string, string>>((acc, category) => {
-            if (category?.id && category?.name) {
-              acc[category.id] = translateCategoryNameToFrench(category.name) ?? category.name;
-            }
-            return acc;
-          }, {});
-        }
-
-        if (!cancelled) {
-          setServices(fetchedServices);
-          setCategoryNamesById(categoryMap);
-          setServicesState("success");
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setServicesState("error");
-          setServicesError(
-            error instanceof Error ? error.message : "Erreur lors du chargement des services.",
-          );
-        }
-      }
-    };
-
-    fetchServices();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, vendor.id]);
-
-  const prevImage = () => {
-    if (images.length === 0) return;
-    setActiveImage((current) => (current === 0 ? images.length - 1 : current - 1));
-  };
-
-  const nextImage = () => {
-    if (images.length === 0) return;
-    setActiveImage((current) => (current === images.length - 1 ? 0 : current + 1));
-  };
+  }, [checkout]);
 
   const openCategoryModal = (categoryId: string) => {
     setOpenCategoryId(categoryId);
@@ -371,25 +181,13 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
     if (!openCategory || !pendingServiceId) return;
     const service = openCategory.services.find((item) => item.id === pendingServiceId);
     if (!service) return;
-
     setSelectedService({ categoryId: openCategory.id, service });
     closeCategoryModal();
   };
 
-  const handleReserveNow = () => {
-    if (!selectedService) return;
-
-    console.log("Reserve now clicked", {
-      vendorId: vendor.id,
-      serviceId: selectedService.service.id,
-      serviceName: selectedService.service.name,
-      categoryId: selectedService.categoryId,
-    });
-  };
-
   return (
     <main className="min-h-screen bg-white text-[#1b1f2f]">
-      <article className="w-full pb-6 sm:mx-auto sm:max-w-sm">
+      <article className="w-full pb-28 sm:mx-auto sm:max-w-sm">
         <section className="relative h-72 w-full overflow-hidden bg-[#d9d9d9]">
           {images.length > 0 ? (
             <>
@@ -402,39 +200,22 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
                 <>
                   <button
                     type="button"
-                    onClick={prevImage}
+                    onClick={() => setActiveImage((current) => (current > 0 ? current - 1 : images.length - 1))}
                     className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 px-2 py-1 text-white"
-                    aria-label="Image precedente"
                   >
                     {"<"}
                   </button>
                   <button
                     type="button"
-                    onClick={nextImage}
+                    onClick={() => setActiveImage((current) => (current < images.length - 1 ? current + 1 : 0))}
                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 px-2 py-1 text-white"
-                    aria-label="Image suivante"
                   >
                     {">"}
                   </button>
-                  <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                    {images.map((image, index) => (
-                      <button
-                        key={image.id}
-                        type="button"
-                        onClick={() => setActiveImage(index)}
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          index === activeImage ? "bg-white" : "bg-white/50"
-                        }`}
-                        aria-label={`Aller a l'image ${index + 1}`}
-                      />
-                    ))}
-                  </div>
                 </>
               ) : null}
             </>
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#ececec] to-[#dadada]" />
-          )}
+          ) : null}
         </section>
 
         <section className="mt-4 bg-white px-4 pb-5 text-[#1b1f2f] shadow-[0_8px_20px_rgba(0,0,0,0.08)] sm:rounded-3xl">
@@ -456,180 +237,82 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
           <VendorTabs activeTab={activeTab} onChange={setActiveTab} />
 
           {activeTab === "about" ? (
-            <>
-              <section className="mb-4 space-y-2">
-                <p className="text-sm leading-relaxed text-[#3f455b]">
-                  {vendor.description ?? "Description non disponible."}
-                </p>
-              </section>
-
-              <section className="mb-4 space-y-2">
-                <h2 className="text-sm font-semibold">Heures d&apos;ouverture</h2>
-                {slots.length > 0 ? (
-                  <ul className="space-y-1 text-sm text-[#49506a]">
-                    {slots.map((slot) => {
-                      const local = formatUtcSlotToLocal(
-                        slot.weekDay,
-                        slot.startTime,
-                        slot.endTime,
-                        timeZone,
-                      );
-                      return (
-                        <li key={slot.id} className="flex items-center justify-between gap-3">
-                          <span>{local.dayLabel}</span>
-                          <span>
-                            {local.startLocal} - {local.endLocal}
-                          </span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-[#7f8395]">Horaires non disponibles.</p>
-                )}
-              </section>
-
-              <section className="mb-4 space-y-2">
-                <h2 className="text-sm font-semibold">Adresse</h2>
-                <p className="text-sm text-[#49506a]">{formatAddress(vendor)}</p>
-              </section>
-
-              <section className="mb-5">
-                {mapUrl ? (
-                  <iframe
-                    title="Carte du vendeur"
-                    src={mapUrl}
-                    className="h-48 w-full rounded-2xl border-0"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="flex h-40 items-center justify-center rounded-2xl bg-[#f3f5fa] text-sm text-[#7f8395]">
-                    Carte non disponible
-                  </div>
-                )}
-              </section>
-            </>
+            <AboutTabContent
+              description={vendor.description}
+              weeklyAvailability={weeklyAvailability}
+              address={formatAddress(vendor)}
+              mapUrl={mapUrl}
+            />
           ) : null}
 
           {activeTab === "services" ? (
-            <section className="mb-5 space-y-3">
-              {servicesState === "loading" ? (
-                <p className="text-sm text-[#7f8395]">Chargement des services...</p>
-              ) : null}
-
-              {servicesState === "error" ? (
-                <p className="text-sm text-red-600">
-                  {servicesError ?? "Erreur lors du chargement des services."}
-                </p>
-              ) : null}
-
-              {servicesState === "success" && serviceCategories.length === 0 ? (
-                <p className="text-sm text-[#7f8395]">Aucun service visible.</p>
-              ) : null}
-
-              {servicesState === "success"
-                ? serviceCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      onClick={() => openCategoryModal(category.id)}
-                      className={`flex w-full items-center justify-between rounded-xl border px-4 py-4 text-left ${
-                        selectedService?.categoryId === category.id
-                          ? "border-[#1f2436] bg-[#f3f4f6]"
-                          : "border-[#d8dbe5] bg-[#f3f4f6]"
-                      }`}
-                    >
-                      <span className="min-w-0">
-                        <span className="block text-sm font-medium text-[#1f2436]">
-                          {category.name}
-                        </span>
-                        {selectedService?.categoryId === category.id ? (
-                          <>
-                            <span className="mt-1 block truncate text-xs text-[#49506a]">
-                              {selectedService.service.name}
-                            </span>
-                            <span className="mt-0.5 block text-sm font-bold text-[#1f2436]">
-                              + {formatServicePrice(selectedService.service) ?? "--"}
-                            </span>
-                          </>
-                        ) : null}
-                      </span>
-                      <span className="ml-3 flex items-center gap-3 text-sm text-[#49506a]">
-                        {selectedService?.categoryId === category.id ? null : (
-                          <span>{category.services.length}</span>
-                        )}
-                        <span className="text-[#1f2436]">▶</span>
-                      </span>
-                    </button>
-                  ))
-                : null}
-            </section>
+            <ServicesTabContent
+              servicesState={servicesState}
+              servicesError={servicesError}
+              serviceCategories={serviceCategories}
+              selectedService={selectedService}
+              onOpenCategory={openCategoryModal}
+              formatServicePrice={formatServicePrice}
+            />
           ) : null}
 
           {activeTab === "gallery" ? (
-            <section className="mb-5">
-              <p className="text-sm text-[#7f8395]">Galerie bientot disponible.</p>
-            </section>
+            <GalleryTabContent images={images} vendorName={vendor.name} />
           ) : null}
 
           {activeTab === "reviews" ? (
-            <section className="mb-5">
-              <p className="text-sm text-[#7f8395]">Avis bientot disponibles.</p>
-            </section>
+            <ReviewsTabContent
+              reviewsState={reviewsState}
+              reviewsError={reviewsError}
+              reviews={reviews}
+              formatDate={formatDate}
+            />
           ) : null}
-
-          <button
-            type="button"
-            disabled={!canReserve}
-            onClick={handleReserveNow}
-            className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
-              canReserve ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
-            }`}
-          >
-            RESERVER MAINTENANT
-          </button>
         </section>
       </article>
 
+      <div className="fixed inset-x-0 bottom-0 z-30 bg-white/95 p-4 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] sm:mx-auto sm:max-w-sm">
+        <button
+          type="button"
+          disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
+          onClick={checkout.startCheckout}
+          className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
+            checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
+          }`}
+        >
+          {checkout.isSubmitting ? "Chargement..." : "RESERVER MAINTENANT"}
+        </button>
+        {checkout.checkoutError ? (
+          <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
+        ) : null}
+      </div>
+
       {openCategory ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <button
-            type="button"
-            aria-label="Fermer la modal"
-            className="absolute inset-0 bg-black/40"
-            onClick={closeCategoryModal}
-          />
+          <button type="button" aria-label="Fermer" className="absolute inset-0 bg-black/40" onClick={closeCategoryModal} />
           <section className="relative z-10 max-h-[85vh] w-full max-w-md overflow-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[#1f2436]">{openCategory.name}</h3>
-              <button
-                type="button"
-                onClick={closeCategoryModal}
-                className="rounded-full px-2 py-1 text-sm text-[#7f8395]"
-              >
+              <button type="button" onClick={closeCategoryModal} className="text-[#7f8395]">
                 ×
               </button>
             </div>
             <ul className="space-y-3">
               {openCategory.services.map((service) => {
-                const isActive = pendingServiceId === service.id;
                 const imageUrl = getServiceImageUrl(service);
+                const selected = pendingServiceId === service.id;
                 return (
                   <li key={service.id}>
                     <button
                       type="button"
                       onClick={() => setPendingServiceId(service.id)}
                       className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left ${
-                        isActive ? "border-[#1f2436]" : "border-[#ebedf3]"
+                        selected ? "border-[#1f2436]" : "border-[#ebedf3]"
                       }`}
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={service.name}
-                            className="h-12 w-12 rounded-md object-cover"
-                          />
+                          <img src={imageUrl} alt={service.name} className="h-12 w-12 rounded-md object-cover" />
                         ) : (
                           <span className="h-12 w-12 rounded-md bg-[#f3f4f6]" />
                         )}
@@ -644,9 +327,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
                       </span>
                       <span
                         className={`h-5 w-5 rounded-full border-2 ${
-                          isActive
-                            ? "border-[#1f2436] bg-[#1f2436]"
-                            : "border-[#1f2436] bg-transparent"
+                          selected ? "border-[#1f2436] bg-[#1f2436]" : "border-[#1f2436] bg-transparent"
                         }`}
                       />
                     </button>
@@ -666,6 +347,98 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
             </button>
           </section>
         </div>
+      ) : null}
+
+      {checkout.bookingOpen ? (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+          <section className="flex max-h-[88vh] w-full max-w-md flex-col rounded-2xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un creneau</h3>
+              <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
+                ×
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <label className="mb-3 block text-sm">
+                Date
+                <input
+                  type="date"
+                  value={checkout.selectedDate}
+                  onChange={(event) => checkout.setSelectedDate(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#d8dbe5] px-3 py-2"
+                />
+              </label>
+
+              {checkout.slotsState === "loading" ? (
+                <p className="mb-2 text-sm text-[#7f8395]">Chargement des creneaux...</p>
+              ) : null}
+              {checkout.slotsState === "success" && checkout.slots.length === 0 ? (
+                <p className="mb-2 text-sm text-[#7f8395]">Aucun creneau disponible.</p>
+              ) : null}
+
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                {checkout.slots.map((slot) => (
+                  <button
+                    key={slot.id}
+                    type="button"
+                    onClick={() => checkout.setSelectedSlotValue(slot.value)}
+                    className={`rounded-lg border px-3 py-2 text-sm ${
+                      checkout.selectedSlotValue === slot.value
+                        ? "border-[#1f2436] bg-[#1f2436] text-white"
+                        : "border-[#d8dbe5] text-[#1f2436]"
+                    }`}
+                  >
+                    {slot.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={!checkout.canSubmitBooking || checkout.isSubmitting}
+              onClick={checkout.submitBookingOrder}
+              className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white ${
+                checkout.canSubmitBooking && !checkout.isSubmitting
+                  ? "bg-[#1f2436]"
+                  : "bg-[#b8bcc9]"
+              }`}
+            >
+              {checkout.isSubmitting ? "Creation de la reservation..." : "Continuer vers paiement"}
+            </button>
+          </section>
+        </div>
+      ) : null}
+
+      <CustomerOrderModal
+        isOpen={checkout.customerModalOpen}
+        bookingLocationType={checkout.bookingLocationType}
+        values={{
+          customerEmail: checkout.customerEmail,
+          customerName: checkout.customerName,
+          customerPhone: checkout.customerPhone,
+          addressQuery: checkout.addressQuery,
+          clientLocation: checkout.clientLocation,
+        }}
+        error={checkout.checkoutError}
+        isSubmitting={checkout.isSubmitting}
+        onClose={checkout.closeCustomerModal}
+        onChange={(next) => {
+          if (next.customerEmail !== undefined) checkout.setCustomerEmail(next.customerEmail);
+          if (next.customerName !== undefined) checkout.setCustomerName(next.customerName);
+          if (next.customerPhone !== undefined) checkout.setCustomerPhone(next.customerPhone);
+          if (next.addressQuery !== undefined) checkout.setAddressQuery(next.addressQuery);
+          if (next.clientLocation !== undefined) checkout.setClientLocation(next.clientLocation);
+        }}
+        onSubmit={checkout.submitCustomerDetails}
+      />
+
+      {checkout.paymentClientSecret ? (
+        <StripePaymentModal
+          clientSecret={checkout.paymentClientSecret}
+          onClose={checkout.clearPayment}
+        />
       ) : null}
     </main>
   );
