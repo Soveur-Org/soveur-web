@@ -271,7 +271,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
         </section>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 bg-white/95 p-4 shadow-[0_-6px_20px_rgba(0,0,0,0.08)] sm:mx-auto sm:max-w-sm">
+      <div className="fixed inset-x-0 bottom-0 z-30 p-4 sm:mx-auto sm:max-w-sm">
         <button
           type="button"
           disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
