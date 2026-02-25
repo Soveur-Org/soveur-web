@@ -94,6 +94,17 @@ function toSlotValue(raw: unknown): string | null {
   return null;
 }
 
+function toSlotAvailability(raw: unknown): boolean {
+  if (typeof raw === "boolean") return raw;
+  if (typeof raw === "number") return raw !== 0;
+  if (typeof raw === "string") {
+    const normalized = raw.trim().toLowerCase();
+    if (["false", "0", "no", "non"].includes(normalized)) return false;
+    if (["true", "1", "yes", "oui"].includes(normalized)) return true;
+  }
+  return true;
+}
+
 function slotFromObject(item: Record<string, unknown>, idx: number): BookingSlot | null {
   const start = toSlotValue(item.startTime) ?? toSlotValue(item.time) ?? toSlotValue(item.start);
   const end = toSlotValue(item.endTime) ?? toSlotValue(item.end);
@@ -103,8 +114,9 @@ function slotFromObject(item: Record<string, unknown>, idx: number): BookingSlot
   const value = start;
   const label = end ? `${start} - ${end}` : start;
   const id = typeof item.id === "string" ? item.id : `slot-${idx}-${value}`;
+  const available = toSlotAvailability(item.available);
 
-  return { id, label, value };
+  return { id, label, value, available };
 }
 
 export async function fetchVendorById(vendorId: string): Promise<Vendor> {
@@ -180,7 +192,7 @@ export async function fetchAvailableSlots(
   return list
     .map((item, index) => {
       if (typeof item === "string") {
-        return { id: `slot-${index}-${item}`, label: item, value: item };
+        return { id: `slot-${index}-${item}`, label: item, value: item, available: true };
       }
       if (item && typeof item === "object") {
         return slotFromObject(item as Record<string, unknown>, index);

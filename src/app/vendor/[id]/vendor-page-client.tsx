@@ -218,7 +218,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
           ) : null}
         </section>
 
-        <section className="mt-4 bg-white px-4 pb-5 text-[#1b1f2f] shadow-[0_8px_20px_rgba(0,0,0,0.08)] sm:rounded-3xl">
+        <section className="mt-4 bg-white px-4 pb-5 text-[#1b1f2f]">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <h1 className="text-[26px] font-semibold leading-tight">{vendor.name}</h1>
@@ -271,26 +271,28 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
         </section>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 p-4 sm:mx-auto sm:max-w-sm">
-        <button
-          type="button"
-          disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
-          onClick={checkout.startCheckout}
-          className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
-            checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
-          }`}
-        >
-          {checkout.isSubmitting ? "Chargement..." : "RESERVER MAINTENANT"}
-        </button>
-        {checkout.checkoutError ? (
-          <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
-        ) : null}
+      <div className="fixed inset-x-0 bottom-0 z-30 p-4">
+        <div className="sm:mx-auto sm:max-w-sm">
+          <button
+            type="button"
+            disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
+            onClick={checkout.startCheckout}
+            className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
+              checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
+            }`}
+          >
+            {checkout.isSubmitting ? "Chargement..." : "RESERVER MAINTENANT"}
+          </button>
+          {checkout.checkoutError ? (
+            <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
+          ) : null}
+        </div>
       </div>
 
       {openCategory ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
           <button type="button" aria-label="Fermer" className="absolute inset-0 bg-black/40" onClick={closeCategoryModal} />
-          <section className="relative z-10 max-h-[85vh] w-full max-w-md overflow-auto rounded-t-3xl bg-white p-5 shadow-xl sm:rounded-3xl">
+          <section className="relative z-10 max-h-[85vh] w-full max-w-md overflow-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[#1f2436]">{openCategory.name}</h3>
               <button type="button" onClick={closeCategoryModal} className="text-[#7f8395]">
@@ -351,7 +353,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
 
       {checkout.bookingOpen ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
-          <section className="flex max-h-[88vh] w-full max-w-md flex-col rounded-2xl bg-white p-5 shadow-xl">
+          <section className="flex max-h-[88vh] w-full max-w-md flex-col overflow-x-hidden rounded-2xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un creneau</h3>
               <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
@@ -359,15 +361,17 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <label className="mb-3 block text-sm">
+            <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1">
+              <label className="mb-3 block min-w-0 text-sm">
                 Date
-                <input
-                  type="date"
-                  value={checkout.selectedDate}
-                  onChange={(event) => checkout.setSelectedDate(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-[#d8dbe5] px-3 py-2"
-                />
+                <div className="mt-1 w-full min-w-0 overflow-hidden rounded-lg border border-[#d8dbe5]">
+                  <input
+                    type="date"
+                    value={checkout.selectedDate}
+                    onChange={(event) => checkout.setSelectedDate(event.target.value)}
+                    className="block w-full min-w-0 max-w-full border-0 bg-transparent px-3 py-2 pr-10 text-sm text-[#1b1f2f] outline-none"
+                  />
+                </div>
               </label>
 
               {checkout.slotsState === "loading" ? (
@@ -378,20 +382,28 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
               ) : null}
 
               <div className="mb-4 grid grid-cols-2 gap-2">
-                {checkout.slots.map((slot) => (
-                  <button
-                    key={slot.id}
-                    type="button"
-                    onClick={() => checkout.setSelectedSlotValue(slot.value)}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
-                      checkout.selectedSlotValue === slot.value
-                        ? "border-[#1f2436] bg-[#1f2436] text-white"
-                        : "border-[#d8dbe5] text-[#1f2436]"
-                    }`}
-                  >
-                    {slot.label}
-                  </button>
-                ))}
+                {checkout.slots.map((slot) => {
+                  const isDisabled = !slot.available;
+                  const isSelected = checkout.selectedSlotValue === slot.value && !isDisabled;
+
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => checkout.setSelectedSlotValue(slot.value)}
+                      className={`rounded-lg border px-3 py-2 text-sm ${
+                        isDisabled
+                          ? "border-[#d8dbe5] text-[#7f8395]"
+                          : isSelected
+                            ? "border-[#1f2436] bg-[#1f2436] text-white"
+                            : "cursor-not-allowed border-[#eceff5] bg-[#f7f8fb] opacity-80"
+                      }`}
+                    >
+                      {slot.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

@@ -105,6 +105,7 @@ export type BookingSlot = {
   id: string;
   label: string;
   value: string;
+  available: boolean;
 };
 
 export type ClientLocation = {

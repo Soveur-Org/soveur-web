@@ -64,7 +64,15 @@ export function ServicesTabContent({
                 {selectedService?.categoryId === category.id ? null : (
                   <span>{category.services.length}</span>
                 )}
-                <span className="text-[#1f2436]">▶</span>
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" className="h-5 w-5">
+                  <path
+                    d="M7 5l5 5-5 5"
+                    stroke="#000000"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
               </span>
             </button>
           ))

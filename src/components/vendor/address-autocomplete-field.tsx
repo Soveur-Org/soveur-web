@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ClientLocation } from "@/app/vendor/[id]/vendor.types";
 
 type NominatimItem = {
@@ -47,8 +47,16 @@ export function AddressAutocompleteField({
 }: AddressAutocompleteFieldProps) {
   const [suggestions, setSuggestions] = useState<NominatimItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const selectedValueRef = useRef<string | null>(null);
 
   useEffect(() => {
+    if (selectedValueRef.current && selectedValueRef.current === value) {
+      selectedValueRef.current = null;
+      setSuggestions([]);
+      setIsLoading(false);
+      return;
+    }
+
     if (value.trim().length < 3) {
       setSuggestions([]);
       return;
@@ -107,6 +115,7 @@ export function AddressAutocompleteField({
                 type="button"
                 onClick={() => {
                   const location = toClientLocation(item);
+                  selectedValueRef.current = item.display_name;
                   onInputChange(item.display_name);
                   onSelectLocation(location);
                   setSuggestions([]);
