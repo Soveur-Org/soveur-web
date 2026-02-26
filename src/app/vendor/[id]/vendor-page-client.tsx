@@ -93,14 +93,15 @@ function formatDate(value?: string) {
 
 function formatServicePrice(service: VendorService) {
   if (typeof service.price !== "number") return null;
+  const currency = "EUR";
   try {
     return new Intl.NumberFormat("fr-FR", {
       style: "currency",
-      currency: service.currency ?? "EUR",
+      currency,
       maximumFractionDigits: 2,
     }).format(service.price);
   } catch {
-    return `${service.price} ${service.currency ?? "EUR"}`;
+    return `${service.price} ${currency}`;
   }
 }
 
