@@ -7,6 +7,13 @@ import type { Vendor } from "./vendor.types";
 
 const getVendor = cache(async (id: string) => fetchVendorById(id));
 
+function getVendorOpenGraphImage(vendor: Vendor): string {
+  const firstVendorImage = (vendor.vendorImages ?? [])
+    .slice()
+    .sort((a, b) => a.order - b.order)[0]?.url;
+  return firstVendorImage || "/icon.png";
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -15,12 +22,19 @@ export async function generateMetadata({
   const { id } = await params;
   try {
     const vendor = await getVendor(id);
+    const image = getVendorOpenGraphImage(vendor);
     return {
       title: `Soveur - ${vendor.name}`,
+      openGraph: {
+        images: [image],
+      },
     };
   } catch {
     return {
       title: "Soveur",
+      openGraph: {
+        images: ["/icon.png"],
+      },
     };
   }
 }
