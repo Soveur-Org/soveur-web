@@ -270,6 +270,14 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <section className="flex max-h-[88vh] w-full max-w-md flex-col overflow-x-hidden rounded-2xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
+              <button
+                type="button"
+                onClick={checkout.backToCustomerModal}
+                className="text-lg font-semibold text-[#7f8395]"
+                aria-label="Retour"
+              >
+                ←
+              </button>
               <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un créneau</h3>
               <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
                 ×
@@ -322,6 +330,10 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
               </div>
             </div>
 
+            {checkout.checkoutError ? (
+              <p className="mb-3 text-sm text-red-600">{checkout.checkoutError}</p>
+            ) : null}
+
             <button
               type="button"
               disabled={!checkout.canSubmitBooking || checkout.isSubmitting}
@@ -340,6 +352,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
 
       <CustomerOrderModal
         isOpen={checkout.customerModalOpen}
+        serviceType={checkout.serviceType}
         bookingLocationType={checkout.bookingLocationType}
         values={{
           customerEmail: checkout.customerEmail,
@@ -347,6 +360,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
           customerPhone: checkout.customerPhone,
           addressQuery: checkout.addressQuery,
           clientLocation: checkout.clientLocation,
+          bookingNotes: checkout.bookingNotes,
         }}
         error={checkout.checkoutError}
         isSubmitting={checkout.isSubmitting}
@@ -357,6 +371,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
           if (next.customerPhone !== undefined) checkout.setCustomerPhone(next.customerPhone);
           if (next.addressQuery !== undefined) checkout.setAddressQuery(next.addressQuery);
           if (next.clientLocation !== undefined) checkout.setClientLocation(next.clientLocation);
+          if (next.bookingNotes !== undefined) checkout.setBookingNotes(next.bookingNotes);
         }}
         onSubmit={checkout.submitCustomerDetails}
       />

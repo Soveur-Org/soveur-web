@@ -9,10 +9,12 @@ type CustomerFormValues = {
   customerPhone: string;
   addressQuery: string;
   clientLocation: ClientLocation | null;
+  bookingNotes: string;
 };
 
 type CustomerOrderModalProps = {
   isOpen: boolean;
+  serviceType: string | null;
   bookingLocationType: string | null;
   values: CustomerFormValues;
   error: string | null;
@@ -24,6 +26,7 @@ type CustomerOrderModalProps = {
 
 export function CustomerOrderModal({
   isOpen,
+  serviceType,
   bookingLocationType,
   values,
   error,
@@ -34,7 +37,9 @@ export function CustomerOrderModal({
 }: CustomerOrderModalProps) {
   if (!isOpen) return null;
 
-  const requiresClientAddress = bookingLocationType === "AT_CLIENT";
+  const requiresClientAddress =
+    serviceType === "BOOKING" && bookingLocationType === "AT_CLIENT";
+  const requiresPhone = bookingLocationType === "AT_CLIENT";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -45,6 +50,8 @@ export function CustomerOrderModal({
             ×
           </button>
         </div>
+
+        {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
 
         <div className="space-y-3">
           <label className="block text-sm">
@@ -58,7 +65,7 @@ export function CustomerOrderModal({
           </label>
 
           <label className="block text-sm">
-            Nom
+            Nom et Prenom *
             <input
               type="text"
               value={values.customerName}
@@ -68,7 +75,7 @@ export function CustomerOrderModal({
           </label>
 
           <label className="block text-sm">
-            Telephone
+            {requiresPhone ? "Telephone *" : "Telephone (optionnel)"}
             <input
               type="tel"
               value={values.customerPhone}
@@ -82,7 +89,7 @@ export function CustomerOrderModal({
               <p className="mb-1 text-sm">Adresse de prestation *</p>
               <AddressAutocompleteField
                 value={values.addressQuery}
-                onInputChange={(addressQuery) => onChange({ addressQuery })}
+                onInputChange={(addressQuery) => onChange({ addressQuery, clientLocation: null })}
                 onSelectLocation={(clientLocation) =>
                   onChange({
                     clientLocation,
@@ -92,9 +99,19 @@ export function CustomerOrderModal({
               />
             </div>
           ) : null}
-        </div>
 
-        {error ? <p className="mt-3 text-sm text-red-600">{error}</p> : null}
+          {requiresClientAddress ? (
+            <label className="block text-sm">
+              Notes de reservation
+              <textarea
+                value={values.bookingNotes}
+                onChange={(event) => onChange({ bookingNotes: event.target.value })}
+                placeholder="Ex: merci d'arriver 10 minutes en avance"
+                className="mt-1 min-h-20 w-full rounded-lg border border-[#d8dbe5] px-3 py-2 outline-none"
+              />
+            </label>
+          ) : null}
+        </div>
 
         <button
           type="button"

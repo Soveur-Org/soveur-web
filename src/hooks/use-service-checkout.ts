@@ -6,12 +6,21 @@ import {
   fetchAvailableSlots,
   fetchServiceDetail,
 } from "@/lib/api/vendor-detail";
-import type { BookingSlot, ClientLocation, VendorService } from "@/app/vendor/[id]/vendor.types";
+import type {
+  BookingSlot,
+  ClientLocation,
+  VendorService,
+} from "@/app/vendor/[id]/vendor.types";
 
 type SelectedService = {
   categoryId: string;
   service: VendorService;
 } | null;
+
+function isValidEmail(value: string): boolean {
+  const email = value.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 function toUtcIso(date: string, time: string): string {
   const [hoursRaw = "0", minutesRaw = "0"] = time.split(":");
@@ -39,27 +48,39 @@ function parseSlotStartMinutes(value: string): number | null {
   return hours * 60 + minutes;
 }
 
-export function useServiceCheckout(vendorId: string, selectedService: SelectedService) {
+export function useServiceCheckout(
+  vendorId: string,
+  selectedService: SelectedService,
+) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [bookingOpen, setBookingOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [slotsState, setSlotsState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [slotsState, setSlotsState] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [slots, setSlots] = useState<BookingSlot[]>([]);
-  const [selectedSlotValue, setSelectedSlotValue] = useState<string | null>(null);
+  const [selectedSlotValue, setSelectedSlotValue] = useState<string | null>(
+    null,
+  );
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [addressQuery, setAddressQuery] = useState("");
-  const [clientLocation, setClientLocation] = useState<ClientLocation | null>(null);
+  const [clientLocation, setClientLocation] = useState<ClientLocation | null>(
+    null,
+  );
+  const [bookingNotes, setBookingNotes] = useState("");
   const [serviceContext, setServiceContext] = useState<{
     serviceType: string;
     bookingLocationType: string | null;
     duration: number | null;
     serviceId: string;
   } | null>(null);
-  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(
+    null,
+  );
 
   const canOpenCheckout = Boolean(selectedService);
   const canSubmitBooking = Boolean(selectedDate && selectedSlotValue);
@@ -72,7 +93,10 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
       try {
         setSlotsState("loading");
         setCheckoutError(null);
-        const availableSlots = await fetchAvailableSlots(selectedService.service.id, selectedDate);
+        const availableSlots = await fetchAvailableSlots(
+          selectedService.service.id,
+          selectedDate,
+        );
         const now = new Date();
         const isToday = selectedDate === getLocalDateKey(now);
         const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -93,7 +117,9 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
         setSlots([]);
         setSlotsState("error");
         setCheckoutError(
-          error instanceof Error ? error.message : "Erreur lors du chargement des disponibilites.",
+          error instanceof Error
+            ? error.message
+            : "Erreur lors du chargement des disponibilites.",
         );
       }
     };
@@ -116,12 +142,18 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
     setCustomerModalOpen(false);
   };
 
+  const backToCustomerModal = () => {
+    setBookingOpen(false);
+    setCustomerModalOpen(true);
+  };
+
   const clearCustomerData = () => {
     setCustomerEmail("");
     setCustomerName("");
     setCustomerPhone("");
     setAddressQuery("");
     setClientLocation(null);
+    setBookingNotes("");
   };
 
   const validateCustomerForm = () => {
@@ -129,13 +161,18 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
       setCheckoutError("L'email est obligatoire.");
       return false;
     }
+    if (!isValidEmail(customerEmail)) {
+      setCheckoutError("Veuillez saisir une adresse email valide.");
+      return false;
+    }
 
-    const bookingLocationType = serviceContext?.bookingLocationType ?? null;
-    if (bookingLocationType === "AT_CLIENT") {
-      if (!customerName.trim()) {
-        setCheckoutError("Le nom est requis pour une prestation a domicile.");
-        return false;
-      }
+    if (!customerName.trim()) {
+      setCheckoutError("Le nom et prenom sont obligatoires.");
+      return false;
+    }
+
+    const isAtClient = serviceContext?.bookingLocationType === "AT_CLIENT";
+    if (isAtClient) {
       if (!customerPhone.trim()) {
         setCheckoutError("Le telephone est requis pour une prestation a domicile.");
         return false;
@@ -155,16 +192,24 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
     setCheckoutError(null);
     setIsSubmitting(true);
     try {
-      const serviceDetails = await fetchServiceDetail(selectedService.service.id);
+      const serviceDetails = await fetchServiceDetail(
+        selectedService.service.id,
+      );
       setServiceContext({
         serviceId: selectedService.service.id,
-        serviceType: serviceDetails.serviceType ?? selectedService.service.serviceType ?? "INSTANT",
+        serviceType:
+          serviceDetails.serviceType ??
+          selectedService.service.serviceType ??
+          "INSTANT",
         bookingLocationType: serviceDetails.bookingLocationType ?? null,
-        duration: serviceDetails.duration ?? selectedService.service.duration ?? null,
+        duration:
+          serviceDetails.duration ?? selectedService.service.duration ?? null,
       });
       setCustomerModalOpen(true);
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : "Erreur de paiement.");
+      setCheckoutError(
+        error instanceof Error ? error.message : "Erreur de paiement.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -179,21 +224,30 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
     setCheckoutError(null);
 
     try {
+      const isBookingAtClient =
+        serviceContext.serviceType === "BOOKING" &&
+        serviceContext.bookingLocationType === "AT_CLIENT";
       const order = await createServiceOrder(serviceContext.serviceId, {
         scheduledAt,
         scheduledDuration: duration,
         customerEmail: customerEmail.trim(),
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
-        clientLocation:
-          serviceContext.bookingLocationType === "AT_CLIENT" ? clientLocation ?? undefined : undefined,
+        clientLocation: isBookingAtClient
+          ? (clientLocation ?? undefined)
+          : undefined,
+        bookingNotes: isBookingAtClient
+          ? bookingNotes.trim() || undefined
+          : undefined,
       });
       closeBooking();
       clearCustomerData();
       setPaymentClientSecret(order.clientSecret);
     } catch (error) {
       setCheckoutError(
-        error instanceof Error ? error.message : "Erreur lors de la creation de la reservation.",
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la creation de la reservation.",
       );
     } finally {
       setIsSubmitting(false);
@@ -215,18 +269,29 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
 
     setIsSubmitting(true);
     try {
+      const isBookingAtClient =
+        serviceContext.serviceType === "BOOKING" &&
+        serviceContext.bookingLocationType === "AT_CLIENT";
       const order = await createServiceOrder(serviceContext.serviceId, {
         customerEmail: customerEmail.trim(),
         customerName: customerName.trim() || undefined,
         customerPhone: customerPhone.trim() || undefined,
-        clientLocation:
-          serviceContext.bookingLocationType === "AT_CLIENT" ? clientLocation ?? undefined : undefined,
+        clientLocation: isBookingAtClient
+          ? (clientLocation ?? undefined)
+          : undefined,
+        bookingNotes: isBookingAtClient
+          ? bookingNotes.trim() || undefined
+          : undefined,
       });
       setCustomerModalOpen(false);
       clearCustomerData();
       setPaymentClientSecret(order.clientSecret);
     } catch (error) {
-      setCheckoutError(error instanceof Error ? error.message : "Erreur lors de la creation de commande.");
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la creation de commande.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -260,11 +325,15 @@ export function useServiceCheckout(vendorId: string, selectedService: SelectedSe
     setAddressQuery,
     clientLocation,
     setClientLocation,
+    bookingNotes,
+    setBookingNotes,
+    serviceType: serviceContext?.serviceType ?? null,
     bookingLocationType: serviceContext?.bookingLocationType ?? null,
     paymentClientSecret,
     clearPayment,
     startCheckout,
     submitCustomerDetails,
+    backToCustomerModal,
     closeBooking,
     submitBookingOrder,
     defaultDate,
