@@ -22,7 +22,7 @@ function toNumber(value: unknown): number | null {
 }
 
 function getOpenLabel(vendor: Vendor) {
-  return vendor.visible ? "Ouvert" : "Ferme";
+  return vendor.visible ? "Ouvert" : "Fermé";
 }
 
 function formatAddress(vendor: Vendor) {
@@ -105,19 +105,9 @@ function formatServicePrice(service: VendorService) {
   }
 }
 
-function getServiceImageUrl(service: VendorService): string | null {
-  if (service.photo) return service.photo;
-  const first =
-    service.images?.slice().sort((a, b) => a.order - b.order)[0] ??
-    service.serviceImages?.slice().sort((a, b) => a.order - b.order)[0];
-  return first?.url ?? null;
-}
-
 export function VendorPageClient({ vendor }: { vendor: Vendor }) {
   const [activeTab, setActiveTab] = useState<VendorTabId>("about");
   const [activeImage, setActiveImage] = useState(0);
-  const [openCategoryId, setOpenCategoryId] = useState<string | null>(null);
-  const [pendingServiceId, setPendingServiceId] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<{
     categoryId: string;
     service: VendorService;
@@ -127,11 +117,6 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
     useVendorTabsData(vendor.id, activeTab);
 
   const checkout = useServiceCheckout(vendor.id, selectedService);
-
-  const openCategory = useMemo(
-    () => serviceCategories.find((category) => category.id === openCategoryId) ?? null,
-    [openCategoryId, serviceCategories],
-  );
 
   const images = useMemo(
     () => (vendor.vendorImages ?? []).slice().sort((a, b) => a.order - b.order),
@@ -166,25 +151,14 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
     }
   }, [checkout]);
 
-  const openCategoryModal = (categoryId: string) => {
-    setOpenCategoryId(categoryId);
-    setPendingServiceId(
-      selectedService?.categoryId === categoryId ? selectedService.service.id : null,
-    );
+  const selectService = (categoryId: string, service: VendorService) => {
+    setSelectedService({ categoryId, service });
   };
 
-  const closeCategoryModal = () => {
-    setOpenCategoryId(null);
-    setPendingServiceId(null);
-  };
-
-  const confirmServiceSelection = () => {
-    if (!openCategory || !pendingServiceId) return;
-    const service = openCategory.services.find((item) => item.id === pendingServiceId);
-    if (!service) return;
-    setSelectedService({ categoryId: openCategory.id, service });
-    closeCategoryModal();
-  };
+  const checkoutButtonLabel =
+    selectedService?.service.serviceType === "BOOKING"
+      ? "Voir les disponibilités"
+      : "Réserver maintenant";
 
   return (
     <main className="min-h-screen bg-white text-[#1b1f2f]">
@@ -252,7 +226,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
               servicesError={servicesError}
               serviceCategories={serviceCategories}
               selectedService={selectedService}
-              onOpenCategory={openCategoryModal}
+              onServiceSelect={selectService}
               formatServicePrice={formatServicePrice}
             />
           ) : null}
@@ -272,83 +246,23 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
         </section>
       </article>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 p-4">
-        <div className="sm:mx-auto sm:max-w-sm">
-          <button
-            type="button"
-            disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
-            onClick={checkout.startCheckout}
-            className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
-              checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
-            }`}
-          >
-            {checkout.isSubmitting ? "Chargement..." : "RESERVER MAINTENANT"}
-          </button>
-          {checkout.checkoutError ? (
-            <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
-          ) : null}
-        </div>
-      </div>
-
-      {openCategory ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          <button type="button" aria-label="Fermer" className="absolute inset-0 bg-black/40" onClick={closeCategoryModal} />
-          <section className="relative z-10 max-h-[85vh] w-full max-w-md overflow-auto rounded-t-3xl bg-white p-5 sm:rounded-3xl">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#1f2436]">{openCategory.name}</h3>
-              <button type="button" onClick={closeCategoryModal} className="text-[#7f8395]">
-                ×
-              </button>
-            </div>
-            <ul className="space-y-3">
-              {openCategory.services.map((service) => {
-                const imageUrl = getServiceImageUrl(service);
-                const selected = pendingServiceId === service.id;
-                return (
-                  <li key={service.id}>
-                    <button
-                      type="button"
-                      onClick={() => setPendingServiceId(service.id)}
-                      className={`flex w-full items-center justify-between gap-3 rounded-xl border p-3 text-left ${
-                        selected ? "border-[#1f2436]" : "border-[#ebedf3]"
-                      }`}
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        {imageUrl ? (
-                          <img src={imageUrl} alt={service.name} className="h-12 w-12 rounded-md object-cover" />
-                        ) : (
-                          <span className="h-12 w-12 rounded-md bg-[#f3f4f6]" />
-                        )}
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium text-[#1f2436]">
-                            {service.name}
-                          </span>
-                          <span className="block text-sm text-[#6d7286]">
-                            {formatServicePrice(service) ?? "--"}
-                          </span>
-                        </span>
-                      </span>
-                      <span
-                        className={`h-5 w-5 rounded-full border-2 ${
-                          selected ? "border-[#1f2436] bg-[#1f2436]" : "border-[#1f2436] bg-transparent"
-                        }`}
-                      />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+      {selectedService ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 p-4">
+          <div className="sm:mx-auto sm:max-w-sm">
             <button
               type="button"
-              disabled={!pendingServiceId}
-              onClick={confirmServiceSelection}
-              className={`mt-5 w-full rounded-full px-5 py-4 text-sm font-semibold text-white ${
-                pendingServiceId ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
+              disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
+              onClick={checkout.startCheckout}
+              className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
+                checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
               }`}
             >
-              Choisir
+              {checkout.isSubmitting ? "Chargement..." : checkoutButtonLabel}
             </button>
-          </section>
+            {checkout.checkoutError ? (
+              <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
+            ) : null}
+          </div>
         </div>
       ) : null}
 
@@ -356,7 +270,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <section className="flex max-h-[88vh] w-full max-w-md flex-col overflow-x-hidden rounded-2xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un creneau</h3>
+              <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un créneau</h3>
               <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
                 ×
               </button>
@@ -376,10 +290,10 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
               </label>
 
               {checkout.slotsState === "loading" ? (
-                <p className="mb-2 text-sm text-[#7f8395]">Chargement des creneaux...</p>
+                <p className="mb-2 text-sm text-[#7f8395]">Chargement des créneaux...</p>
               ) : null}
               {checkout.slotsState === "success" && checkout.slots.length === 0 ? (
-                <p className="mb-2 text-sm text-[#7f8395]">Aucun creneau disponible.</p>
+                <p className="mb-2 text-sm text-[#7f8395]">Aucun créneau disponible.</p>
               ) : null}
 
               <div className="mb-4 grid grid-cols-2 gap-2">
@@ -418,7 +332,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
                   : "bg-[#b8bcc9]"
               }`}
             >
-              {checkout.isSubmitting ? "Creation de la reservation..." : "Continuer vers paiement"}
+              {checkout.isSubmitting ? "Création de la réservation..." : "Continuer vers paiement"}
             </button>
           </section>
         </div>
