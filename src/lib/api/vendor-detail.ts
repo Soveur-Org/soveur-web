@@ -206,7 +206,19 @@ export async function createServiceOrder(
   serviceId: string,
   payload: ServiceOrderPayload,
 ): Promise<{ clientSecret: string }> {
-  const response = await fetchJson<MaybeData<{ clientSecret?: string } | { paymentIntentClientSecret?: string }>>(
+  const response = await fetchJson<
+    MaybeData<
+      | {
+          clientSecret?: string;
+          client_secret?: string;
+          paymentIntentClientSecret?: string;
+          payment_intent_client_secret?: string;
+          paymentIntent?: { clientSecret?: string; client_secret?: string };
+          payment_intent?: { clientSecret?: string; client_secret?: string };
+        }
+      | { paymentIntentClientSecret?: string }
+    >
+  >(
     `/services/${serviceId}/order`,
     {
       method: "POST",
@@ -214,9 +226,19 @@ export async function createServiceOrder(
     },
   );
   const data = extractObject(response);
+  const rawClientSecret =
+    ("paymentIntentClientSecret" in data ? data.paymentIntentClientSecret : undefined) ??
+    ("payment_intent_client_secret" in data ? data.payment_intent_client_secret : undefined) ??
+    ("paymentIntent" in data && data.paymentIntent ? data.paymentIntent.clientSecret : undefined) ??
+    ("payment_intent" in data && data.payment_intent
+      ? data.payment_intent.client_secret
+      : undefined) ??
+    ("clientSecret" in data ? data.clientSecret : undefined) ??
+    ("client_secret" in data ? data.client_secret : undefined);
   const clientSecret =
-    ("clientSecret" in data && data.clientSecret) ||
-    ("paymentIntentClientSecret" in data && data.paymentIntentClientSecret);
+    typeof rawClientSecret === "string" && rawClientSecret.trim().length > 0
+      ? rawClientSecret
+      : null;
 
   if (!clientSecret) {
     throw new Error("Missing Stripe clientSecret from order API.");

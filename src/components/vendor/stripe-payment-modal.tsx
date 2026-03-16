@@ -11,7 +11,7 @@ type StripePaymentModalProps = {
 };
 
 function getStripePromise() {
-  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+  const key = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY?.trim();
   if (!key) return null;
   return loadStripe(key);
 }
@@ -51,7 +51,13 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <PaymentElement />
+      <PaymentElement
+        onLoaderror={() => {
+          setMessage(
+            "Impossible de charger le formulaire de paiement. Verifiez la configuration Stripe (cle publique et client secret PaymentIntent).",
+          );
+        }}
+      />
       {message ? <p className="text-sm text-red-600">{message}</p> : null}
       <button
         type="submit"
@@ -68,6 +74,9 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
 
 export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModalProps) {
   const stripePromise = useMemo(() => getStripePromise(), []);
+  const normalizedClientSecret = clientSecret.trim();
+  const isPaymentElementSecret =
+    normalizedClientSecret.startsWith("pi_") || normalizedClientSecret.startsWith("seti_");
 
   if (!stripePromise) {
     return (
@@ -75,6 +84,26 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
         <section className="w-full max-w-md rounded-2xl bg-white p-5">
           <p className="text-sm text-red-600">
             NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY est manquante.
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-4 rounded-full bg-[#1f2436] px-4 py-2 text-sm text-white"
+          >
+            Fermer
+          </button>
+        </section>
+      </div>
+    );
+  }
+
+  if (!isPaymentElementSecret) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+        <section className="w-full max-w-md rounded-2xl bg-white p-5">
+          <p className="text-sm text-red-600">
+            Le secret de paiement recu est invalide pour PaymentElement. L&apos;API doit renvoyer
+            un client secret de PaymentIntent (prefixe pi_) ou SetupIntent (prefixe seti_).
           </p>
           <button
             type="button"
@@ -97,7 +126,7 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
             ×
           </button>
         </div>
-        <Elements stripe={stripePromise} options={{ clientSecret }}>
+        <Elements stripe={stripePromise} options={{ clientSecret: normalizedClientSecret }}>
           <PaymentForm onClose={onClose} />
         </Elements>
       </section>
