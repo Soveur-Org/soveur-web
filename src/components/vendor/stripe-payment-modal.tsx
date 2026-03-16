@@ -52,7 +52,7 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement
-        onLoaderror={() => {
+        onLoadError={() => {
           setMessage(
             "Impossible de charger le formulaire de paiement. Verifiez la configuration Stripe (cle publique et client secret PaymentIntent).",
           );
