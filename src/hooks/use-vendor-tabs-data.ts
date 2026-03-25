@@ -2,11 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { translateCategoryNameToFrench } from "@/constants/category-translations";
-import {
-  fetchCategories,
-  fetchVendorReviews,
-  fetchVendorServices,
-} from "@/lib/api/vendor-detail";
+import { fetchCategories, fetchVendorReviews } from "@/lib/api/vendor-detail";
 import type {
   ServiceCategoryGroup,
   VendorReview,
@@ -62,14 +58,21 @@ function groupServices(
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"));
 }
 
-export function useVendorTabsData(vendorId: string, activeTab: VendorTabId) {
+export function useVendorTabsData(
+  vendorId: string,
+  activeTab: VendorTabId,
+  initialServices: VendorService[],
+) {
+  const initialServicesRef = useRef(initialServices);
+  initialServicesRef.current = initialServices;
+
   const hasFetchedServicesRef = useRef(false);
   const hasFetchedReviewsRef = useRef(false);
   const [servicesState, setServicesState] = useState<"idle" | "loading" | "success" | "error">(
-    "idle",
+    () => (initialServices.length === 0 ? "success" : "loading"),
   );
   const [servicesError, setServicesError] = useState<string | null>(null);
-  const [services, setServices] = useState<VendorService[]>([]);
+  const [services, setServices] = useState<VendorService[]>(() => initialServices);
   const [categoriesById, setCategoriesById] = useState<Record<string, string>>({});
 
   const [reviewsState, setReviewsState] = useState<"idle" | "loading" | "success" | "error">(
@@ -84,7 +87,16 @@ export function useVendorTabsData(vendorId: string, activeTab: VendorTabId) {
   );
 
   useEffect(() => {
-    if (activeTab !== "services" || hasFetchedServicesRef.current) return;
+    const list = initialServicesRef.current;
+
+    if (list.length === 0) {
+      setServices([]);
+      setServicesState("success");
+      setServicesError(null);
+      hasFetchedServicesRef.current = true;
+      return;
+    }
+
     hasFetchedServicesRef.current = true;
     let cancelled = false;
 
@@ -92,10 +104,8 @@ export function useVendorTabsData(vendorId: string, activeTab: VendorTabId) {
       try {
         setServicesState("loading");
         setServicesError(null);
-        const [serviceList, categoryList] = await Promise.all([
-          fetchVendorServices(vendorId),
-          fetchCategories(),
-        ]);
+        setServices(list);
+        const categoryList = await fetchCategories();
         if (cancelled) return;
 
         const nextCategories = categoryList.reduce<Record<string, string>>((acc, category) => {
@@ -103,7 +113,6 @@ export function useVendorTabsData(vendorId: string, activeTab: VendorTabId) {
           return acc;
         }, {});
         setCategoriesById(nextCategories);
-        setServices(serviceList);
         setServicesState("success");
       } catch (error) {
         if (cancelled) return;
@@ -118,7 +127,7 @@ export function useVendorTabsData(vendorId: string, activeTab: VendorTabId) {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, vendorId]);
+  }, [vendorId]);
 
   useEffect(() => {
     if (activeTab !== "reviews" || hasFetchedReviewsRef.current) return;

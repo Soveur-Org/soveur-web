@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { fetchVendorById } from "@/lib/api/vendor-detail";
+import { fetchVendorById, fetchVendorServices } from "@/lib/api/vendor-detail";
 import { VendorPageClient } from "./vendor-page-client";
-import type { Vendor } from "./vendor.types";
+import type { Vendor, VendorService } from "./vendor.types";
 
 const getVendor = cache(async (id: string) => fetchVendorById(id));
+const getVendorServices = cache(async (id: string) => fetchVendorServices(id));
 
 function getVendorOpenGraphImage(vendor: Vendor): string {
   const firstVendorImage = (vendor.vendorImages ?? [])
@@ -56,11 +57,14 @@ export default async function VendorPage({
 }) {
   const { id } = await params;
   let vendor: Vendor;
+  let initialServices: VendorService[];
   try {
-    vendor = await getVendor(id);
+    [vendor, initialServices] = await Promise.all([getVendor(id), getVendorServices(id)]);
   } catch {
     notFound();
   }
 
-  return <VendorPageClient vendor={vendor} />;
+  return (
+    <VendorPageClient key={vendor.id} vendor={vendor} initialServices={initialServices} />
+  );
 }

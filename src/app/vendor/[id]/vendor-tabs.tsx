@@ -15,12 +15,20 @@ const TABS: TabItem[] = [
 type VendorTabsProps = {
   activeTab: VendorTabId;
   onChange: (tab: VendorTabId) => void;
+  showServices: boolean;
+  showGallery: boolean;
 };
 
-export function VendorTabs({ activeTab, onChange }: VendorTabsProps) {
+export function VendorTabs({ activeTab, onChange, showServices, showGallery }: VendorTabsProps) {
+  const visibleTabs = TABS.filter((tab) => {
+    if (tab.id === "services") return showServices;
+    if (tab.id === "gallery") return showGallery;
+    return true;
+  });
+
   return (
     <nav className="mb-4 flex gap-2 overflow-x-auto pb-1 text-sm whitespace-nowrap" aria-label="Sections vendeur">
-      {TABS.map((tab) => {
+      {visibleTabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <button

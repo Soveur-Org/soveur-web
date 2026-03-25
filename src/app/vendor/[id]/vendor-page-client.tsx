@@ -105,7 +105,13 @@ function formatServicePrice(service: VendorService) {
   }
 }
 
-export function VendorPageClient({ vendor }: { vendor: Vendor }) {
+export function VendorPageClient({
+  vendor,
+  initialServices,
+}: {
+  vendor: Vendor;
+  initialServices: VendorService[];
+}) {
   const [activeTab, setActiveTab] = useState<VendorTabId>("about");
   const [activeImage, setActiveImage] = useState(0);
   const [selectedService, setSelectedService] = useState<{
@@ -114,7 +120,7 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
   } | null>(null);
 
   const { servicesState, servicesError, serviceCategories, reviewsState, reviewsError, reviews } =
-    useVendorTabsData(vendor.id, activeTab);
+    useVendorTabsData(vendor.id, activeTab, initialServices);
 
   const checkout = useServiceCheckout(vendor.id, selectedService);
 
@@ -122,6 +128,9 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
     () => (vendor.vendorImages ?? []).slice().sort((a, b) => a.order - b.order),
     [vendor.vendorImages],
   );
+
+  const showServicesTab = initialServices.length > 0;
+  const showGalleryTab = images.length > 1;
   const userTimeZone = useMemo(
     () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     [],
@@ -150,6 +159,15 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
       checkout.setSelectedDate(checkout.defaultDate);
     }
   }, [checkout]);
+
+  useEffect(() => {
+    if (activeTab === "services" && !showServicesTab) {
+      setActiveTab("about");
+    }
+    if (activeTab === "gallery" && !showGalleryTab) {
+      setActiveTab("about");
+    }
+  }, [activeTab, showServicesTab, showGalleryTab]);
 
   const selectService = (categoryId: string, service: VendorService) => {
     setSelectedService({ categoryId, service });
@@ -209,7 +227,12 @@ export function VendorPageClient({ vendor }: { vendor: Vendor }) {
             <span className="text-[#6d7286]">({vendor.reviewCount ?? 0})</span>
           </div>
 
-          <VendorTabs activeTab={activeTab} onChange={setActiveTab} />
+          <VendorTabs
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            showServices={showServicesTab}
+            showGallery={showGalleryTab}
+          />
 
           {activeTab === "about" ? (
             <AboutTabContent
