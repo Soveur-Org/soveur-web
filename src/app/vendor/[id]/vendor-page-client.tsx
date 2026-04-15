@@ -293,14 +293,7 @@ export function VendorPageClient({
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
           <section className="flex max-h-[88vh] w-full max-w-md flex-col overflow-x-hidden rounded-2xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={checkout.backToCustomerModal}
-                className="text-lg font-semibold text-[#7f8395]"
-                aria-label="Retour"
-              >
-                ←
-              </button>
+              <span />
               <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un créneau</h3>
               <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
                 ×
@@ -323,34 +316,40 @@ export function VendorPageClient({
               {checkout.slotsState === "loading" ? (
                 <p className="mb-2 text-sm text-[#7f8395]">Chargement des créneaux...</p>
               ) : null}
-              {checkout.slotsState === "success" && checkout.slots.length === 0 ? (
-                <p className="mb-2 text-sm text-[#7f8395]">Aucun créneau disponible.</p>
-              ) : null}
-
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                {checkout.slots.map((slot) => {
-                  const isDisabled = !slot.available;
-                  const isSelected = checkout.selectedSlotValue === slot.value && !isDisabled;
-
+              {(() => {
+                const hasAvailableSlots = checkout.slots.some((s) => s.available);
+                if (checkout.slotsState === "success" && !hasAvailableSlots) {
                   return (
-                    <button
-                      key={slot.id}
-                      type="button"
-                      disabled={isDisabled}
-                      onClick={() => checkout.setSelectedSlotValue(slot.value)}
-                      className={`rounded-lg border px-3 py-2 text-sm ${
-                        isDisabled
-                          ? "border-[#d8dbe5] text-[#7f8395]"
-                          : isSelected
-                            ? "border-[#1f2436] bg-[#1f2436] text-white"
-                            : "cursor-not-allowed border-[#eceff5] bg-[#f7f8fb] opacity-80"
-                      }`}
-                    >
-                      {slot.label}
-                    </button>
+                    <p className="mb-2 text-sm text-[#7f8395]">
+                      Aucun créneau disponible ce jour.
+                    </p>
                   );
-                })}
-              </div>
+                }
+                if (!hasAvailableSlots) return null;
+                return (
+                  <div className="mb-4 grid grid-cols-2 gap-2">
+                    {checkout.slots.map((slot) => {
+                      if (!slot.available) return null;
+                      const isSelected = checkout.selectedSlotValue === slot.value;
+
+                      return (
+                        <button
+                          key={slot.id}
+                          type="button"
+                          onClick={() => checkout.setSelectedSlotValue(slot.value)}
+                          className={`rounded-lg border px-3 py-2 text-sm ${
+                            isSelected
+                              ? "border-[#1f2436] bg-[#1f2436] text-white"
+                              : "border-[#eceff5] bg-[#f7f8fb]"
+                          }`}
+                        >
+                          {slot.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
 
             {checkout.checkoutError ? (
@@ -360,14 +359,14 @@ export function VendorPageClient({
             <button
               type="button"
               disabled={!checkout.canSubmitBooking || checkout.isSubmitting}
-              onClick={checkout.submitBookingOrder}
+              onClick={checkout.submitBookingSlot}
               className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white ${
                 checkout.canSubmitBooking && !checkout.isSubmitting
                   ? "bg-[#1f2436]"
                   : "bg-[#b8bcc9]"
               }`}
             >
-              {checkout.isSubmitting ? "Création de la réservation..." : "Continuer vers paiement"}
+              {checkout.isSubmitting ? "Chargement..." : "Continuer"}
             </button>
           </section>
         </div>
@@ -388,6 +387,7 @@ export function VendorPageClient({
         error={checkout.checkoutError}
         isSubmitting={checkout.isSubmitting}
         onClose={checkout.closeCustomerModal}
+        onBack={checkout.serviceType === "BOOKING" ? checkout.backToBooking : undefined}
         onChange={(next) => {
           if (next.customerEmail !== undefined) checkout.setCustomerEmail(next.customerEmail);
           if (next.customerName !== undefined) checkout.setCustomerName(next.customerName);
