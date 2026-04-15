@@ -19,6 +19,7 @@ type CustomerOrderModalProps = {
   values: CustomerFormValues;
   error: string | null;
   onClose: () => void;
+  onBack?: () => void;
   onChange: (next: Partial<CustomerFormValues>) => void;
   onSubmit: () => void;
   isSubmitting: boolean;
@@ -31,6 +32,7 @@ export function CustomerOrderModal({
   values,
   error,
   onClose,
+  onBack,
   onChange,
   onSubmit,
   isSubmitting,
@@ -45,6 +47,18 @@ export function CustomerOrderModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <section className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-lg font-semibold text-[#7f8395]"
+              aria-label="Retour"
+            >
+              ←
+            </button>
+          ) : (
+            <span />
+          )}
           <h3 className="text-lg font-semibold text-[#1f2436]">Vos informations</h3>
           <button type="button" onClick={onClose} className="text-[#7f8395]">
             ×
@@ -121,7 +135,11 @@ export function CustomerOrderModal({
             isSubmitting ? "bg-[#b8bcc9]" : "bg-[#1f2436]"
           }`}
         >
-          {isSubmitting ? "Validation..." : "Continuer"}
+          {isSubmitting
+            ? "Validation..."
+            : serviceType === "BOOKING"
+              ? "Continuer vers paiement"
+              : "Continuer"}
         </button>
       </section>
     </div>
