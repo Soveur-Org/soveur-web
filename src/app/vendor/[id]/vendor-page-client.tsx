@@ -25,12 +25,13 @@ function getOpenLabel(vendor: Vendor) {
   return vendor.visible ? "Ouvert" : "Fermé";
 }
 
-function formatAddress(vendor: Vendor) {
+function formatAddress(vendor: Vendor): string | null {
   const location = vendor.location;
-  if (!location) return "Adresse non disponible";
-  return [location.street, location.zipcode, location.city, location.country]
+  if (!location) return null;
+  const parts = [location.street, location.zipcode, location.city, location.country]
     .filter(Boolean)
     .join(", ");
+  return parts || null;
 }
 
 function renderStars(rating: number | null) {
@@ -215,7 +216,9 @@ export function VendorPageClient({
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <h1 className="text-[26px] font-semibold leading-tight">{vendor.name}</h1>
-              <p className="mt-1 text-sm text-[#6d7286]">{formatAddress(vendor)}</p>
+              {formatAddress(vendor) ? (
+                <p className="mt-1 text-sm text-[#6d7286]">{formatAddress(vendor)}</p>
+              ) : null}
             </div>
             <span className="rounded-full bg-[#57c74f] px-3 py-1 text-xs font-semibold text-white">
               {getOpenLabel(vendor)}

@@ -8,7 +8,7 @@ type WeeklyAvailabilityItem = {
 type AboutTabContentProps = {
   description: string | null;
   weeklyAvailability: WeeklyAvailabilityItem[];
-  address: string;
+  address: string | null;
   mapUrl: string | null;
 };
 
@@ -40,24 +40,28 @@ export function AboutTabContent({
           <p className="text-sm text-[#7f8395]">Disponibilites non renseignees.</p>
         )}
       </section>
-      <section className="mb-4">
-        <h2 className="mb-2 text-sm font-semibold">Adresse</h2>
-        <p className="text-sm text-[#49506a]">{address}</p>
-      </section>
-      <section className="mb-5">
-        {mapUrl ? (
-          <iframe
-            title="Carte du vendeur"
-            src={mapUrl}
-            className="h-48 w-full rounded-2xl border-0"
-            loading="lazy"
-          />
-        ) : (
-          <div className="flex h-40 items-center justify-center rounded-2xl bg-[#f3f5fa] text-sm text-[#7f8395]">
-            Carte non disponible
-          </div>
-        )}
-      </section>
+      {address ? (
+        <section className="mb-4">
+          <h2 className="mb-2 text-sm font-semibold">Adresse</h2>
+          <p className="text-sm text-[#49506a]">{address}</p>
+        </section>
+      ) : null}
+      {address ? (
+        <section className="mb-5">
+          {mapUrl ? (
+            <iframe
+              title="Carte du vendeur"
+              src={mapUrl}
+              className="h-48 w-full rounded-2xl border-0"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-40 items-center justify-center rounded-2xl bg-[#f3f5fa] text-sm text-[#7f8395]">
+              Carte non disponible
+            </div>
+          )}
+        </section>
+      ) : null}
     </>
   );
 }
