@@ -9,6 +9,7 @@ import { ReviewsTabContent } from "@/components/vendor/tabs/reviews-tab-content"
 import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-content";
 import { useServiceCheckout } from "@/hooks/use-service-checkout";
 import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
+import { SOVEUR_MOBILE_STORE_BADGES } from "@/lib/soveur-app-download-links";
 import type { Vendor, VendorService } from "./vendor.types";
 import { VendorTabs, type VendorTabId } from "./vendor-tabs";
 
@@ -28,7 +29,12 @@ function getOpenLabel(vendor: Vendor) {
 function formatAddress(vendor: Vendor): string | null {
   const location = vendor.location;
   if (!location) return null;
-  const parts = [location.street, location.zipcode, location.city, location.country]
+  const parts = [
+    location.street,
+    location.zipcode,
+    location.city,
+    location.country,
+  ]
     .filter(Boolean)
     .join(", ");
   return parts || null;
@@ -63,10 +69,14 @@ function formatUtcSlotToLocal(
   const end = parseTime(endTime);
   const baseSunday = Date.UTC(2020, 0, 5);
   const startUtc = new Date(
-    baseSunday + weekDay * 24 * 60 * 60 * 1000 + (start.hour * 60 + start.minute) * 60 * 1000,
+    baseSunday +
+      weekDay * 24 * 60 * 60 * 1000 +
+      (start.hour * 60 + start.minute) * 60 * 1000,
   );
   const endUtc = new Date(
-    baseSunday + weekDay * 24 * 60 * 60 * 1000 + (end.hour * 60 + end.minute) * 60 * 1000,
+    baseSunday +
+      weekDay * 24 * 60 * 60 * 1000 +
+      (end.hour * 60 + end.minute) * 60 * 1000,
   );
 
   const dayFormatter = new Intl.DateTimeFormat("fr-FR", {
@@ -89,7 +99,9 @@ function formatUtcSlotToLocal(
 
 function formatDate(value?: string) {
   if (!value) return "";
-  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 function formatServicePrice(service: VendorService) {
@@ -120,8 +132,14 @@ export function VendorPageClient({
     service: VendorService;
   } | null>(null);
 
-  const { servicesState, servicesError, serviceCategories, reviewsState, reviewsError, reviews } =
-    useVendorTabsData(vendor.id, activeTab, initialServices);
+  const {
+    servicesState,
+    servicesError,
+    serviceCategories,
+    reviewsState,
+    reviewsError,
+    reviews,
+  } = useVendorTabsData(vendor.id, activeTab, initialServices);
 
   const checkout = useServiceCheckout(vendor.id, selectedService);
 
@@ -143,7 +161,12 @@ export function VendorPageClient({
         .sort((a, b) => a.weekDay - b.weekDay)
         .map((slot) => ({
           id: slot.id,
-          ...formatUtcSlotToLocal(slot.weekDay, slot.startTime, slot.endTime, userTimeZone),
+          ...formatUtcSlotToLocal(
+            slot.weekDay,
+            slot.startTime,
+            slot.endTime,
+            userTimeZone,
+          ),
         })),
     [userTimeZone, vendor.availability?.slots],
   );
@@ -182,6 +205,29 @@ export function VendorPageClient({
   return (
     <main className="min-h-screen bg-white text-[#1b1f2f]">
       <article className="w-full pb-28 sm:mx-auto sm:max-w-sm">
+        <aside className="border-b border-[#eceff5] bg-[#fff] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {SOVEUR_MOBILE_STORE_BADGES.map((store) => (
+              <a
+                key={store.imageSrc}
+                href={store.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:opacity-80"
+              >
+                <img
+                  src={store.imageSrc}
+                  alt={store.label}
+                  className="h-10 w-auto max-w-[140px] object-contain object-left"
+                  width={140}
+                  height={40}
+                  loading="lazy"
+                />
+              </a>
+            ))}
+          </div>
+        </aside>
+
         <section className="relative h-72 w-full overflow-hidden bg-[#d9d9d9]">
           {images.length > 0 ? (
             <>
@@ -194,14 +240,22 @@ export function VendorPageClient({
                 <>
                   <button
                     type="button"
-                    onClick={() => setActiveImage((current) => (current > 0 ? current - 1 : images.length - 1))}
+                    onClick={() =>
+                      setActiveImage((current) =>
+                        current > 0 ? current - 1 : images.length - 1,
+                      )
+                    }
                     className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 px-2 py-1 text-white"
                   >
                     {"<"}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setActiveImage((current) => (current < images.length - 1 ? current + 1 : 0))}
+                    onClick={() =>
+                      setActiveImage((current) =>
+                        current < images.length - 1 ? current + 1 : 0,
+                      )
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/45 px-2 py-1 text-white"
                   >
                     {">"}
@@ -215,9 +269,13 @@ export function VendorPageClient({
         <section className="mt-4 bg-white px-4 pb-5 text-[#1b1f2f]">
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
-              <h1 className="text-[26px] font-semibold leading-tight">{vendor.name}</h1>
+              <h1 className="text-[26px] font-semibold leading-tight">
+                {vendor.name}
+              </h1>
               {formatAddress(vendor) ? (
-                <p className="mt-1 text-sm text-[#6d7286]">{formatAddress(vendor)}</p>
+                <p className="mt-1 text-sm text-[#6d7286]">
+                  {formatAddress(vendor)}
+                </p>
               ) : null}
             </div>
             <span className="rounded-full bg-[#57c74f] px-3 py-1 text-xs font-semibold text-white">
@@ -226,7 +284,9 @@ export function VendorPageClient({
           </div>
 
           <div className="mb-5 flex items-center gap-2 text-sm">
-            <span className="text-[#f2a327]">{renderStars(vendor.averageRating)}</span>
+            <span className="text-[#f2a327]">
+              {renderStars(vendor.averageRating)}
+            </span>
             <span className="text-[#6d7286]">({vendor.reviewCount ?? 0})</span>
           </div>
 
@@ -280,13 +340,17 @@ export function VendorPageClient({
               disabled={!checkout.canOpenCheckout || checkout.isSubmitting}
               onClick={checkout.startCheckout}
               className={`w-full rounded-full px-5 py-4 text-sm font-semibold tracking-wide text-white ${
-                checkout.canOpenCheckout && !checkout.isSubmitting ? "bg-[#1f2436]" : "bg-[#b8bcc9]"
+                checkout.canOpenCheckout && !checkout.isSubmitting
+                  ? "bg-[#1f2436]"
+                  : "bg-[#b8bcc9]"
               }`}
             >
               {checkout.isSubmitting ? "Chargement..." : checkoutButtonLabel}
             </button>
             {checkout.checkoutError ? (
-              <p className="mt-2 text-center text-xs text-red-600">{checkout.checkoutError}</p>
+              <p className="mt-2 text-center text-xs text-red-600">
+                {checkout.checkoutError}
+              </p>
             ) : null}
           </div>
         </div>
@@ -297,8 +361,14 @@ export function VendorPageClient({
           <section className="flex max-h-[88vh] w-full max-w-md flex-col overflow-x-hidden rounded-2xl bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
               <span />
-              <h3 className="text-lg font-semibold text-[#1f2436]">Choisir un créneau</h3>
-              <button type="button" onClick={checkout.closeBooking} className="text-[#7f8395]">
+              <h3 className="text-lg font-semibold text-[#1f2436]">
+                Choisir un créneau
+              </h3>
+              <button
+                type="button"
+                onClick={checkout.closeBooking}
+                className="text-[#7f8395]"
+              >
                 ×
               </button>
             </div>
@@ -310,17 +380,23 @@ export function VendorPageClient({
                   <input
                     type="date"
                     value={checkout.selectedDate}
-                    onChange={(event) => checkout.setSelectedDate(event.target.value)}
+                    onChange={(event) =>
+                      checkout.setSelectedDate(event.target.value)
+                    }
                     className="block w-full min-w-0 max-w-full border-0 bg-transparent px-3 py-2 pr-10 text-sm text-[#1b1f2f] outline-none"
                   />
                 </div>
               </label>
 
               {checkout.slotsState === "loading" ? (
-                <p className="mb-2 text-sm text-[#7f8395]">Chargement des créneaux...</p>
+                <p className="mb-2 text-sm text-[#7f8395]">
+                  Chargement des créneaux...
+                </p>
               ) : null}
               {(() => {
-                const hasAvailableSlots = checkout.slots.some((s) => s.available);
+                const hasAvailableSlots = checkout.slots.some(
+                  (s) => s.available,
+                );
                 if (checkout.slotsState === "success" && !hasAvailableSlots) {
                   return (
                     <p className="mb-2 text-sm text-[#7f8395]">
@@ -333,13 +409,16 @@ export function VendorPageClient({
                   <div className="mb-4 grid grid-cols-2 gap-2">
                     {checkout.slots.map((slot) => {
                       if (!slot.available) return null;
-                      const isSelected = checkout.selectedSlotValue === slot.value;
+                      const isSelected =
+                        checkout.selectedSlotValue === slot.value;
 
                       return (
                         <button
                           key={slot.id}
                           type="button"
-                          onClick={() => checkout.setSelectedSlotValue(slot.value)}
+                          onClick={() =>
+                            checkout.setSelectedSlotValue(slot.value)
+                          }
                           className={`rounded-lg border px-3 py-2 text-sm ${
                             isSelected
                               ? "border-[#1f2436] bg-[#1f2436] text-white"
@@ -356,7 +435,9 @@ export function VendorPageClient({
             </div>
 
             {checkout.checkoutError ? (
-              <p className="mb-3 text-sm text-red-600">{checkout.checkoutError}</p>
+              <p className="mb-3 text-sm text-red-600">
+                {checkout.checkoutError}
+              </p>
             ) : null}
 
             <button
@@ -390,14 +471,24 @@ export function VendorPageClient({
         error={checkout.checkoutError}
         isSubmitting={checkout.isSubmitting}
         onClose={checkout.closeCustomerModal}
-        onBack={checkout.serviceType === "BOOKING" ? checkout.backToBooking : undefined}
+        onBack={
+          checkout.serviceType === "BOOKING"
+            ? checkout.backToBooking
+            : undefined
+        }
         onChange={(next) => {
-          if (next.customerEmail !== undefined) checkout.setCustomerEmail(next.customerEmail);
-          if (next.customerName !== undefined) checkout.setCustomerName(next.customerName);
-          if (next.customerPhone !== undefined) checkout.setCustomerPhone(next.customerPhone);
-          if (next.addressQuery !== undefined) checkout.setAddressQuery(next.addressQuery);
-          if (next.clientLocation !== undefined) checkout.setClientLocation(next.clientLocation);
-          if (next.bookingNotes !== undefined) checkout.setBookingNotes(next.bookingNotes);
+          if (next.customerEmail !== undefined)
+            checkout.setCustomerEmail(next.customerEmail);
+          if (next.customerName !== undefined)
+            checkout.setCustomerName(next.customerName);
+          if (next.customerPhone !== undefined)
+            checkout.setCustomerPhone(next.customerPhone);
+          if (next.addressQuery !== undefined)
+            checkout.setAddressQuery(next.addressQuery);
+          if (next.clientLocation !== undefined)
+            checkout.setClientLocation(next.clientLocation);
+          if (next.bookingNotes !== undefined)
+            checkout.setBookingNotes(next.bookingNotes);
         }}
         onSubmit={checkout.submitCustomerDetails}
       />
