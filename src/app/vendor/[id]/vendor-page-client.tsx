@@ -205,7 +205,7 @@ export function VendorPageClient({
   return (
     <main className="min-h-screen bg-white text-[#1b1f2f]">
       <article className="w-full pb-28 sm:mx-auto sm:max-w-sm">
-        <aside className="border-b border-[#eceff5] bg-[#f7f8fb] px-4 py-3">
+        <aside className="border-b border-[#eceff5] bg-[#fff] px-4 py-3">
           <div className="flex flex-wrap items-center justify-center gap-4">
             {SOVEUR_MOBILE_STORE_BADGES.map((store) => (
               <a
