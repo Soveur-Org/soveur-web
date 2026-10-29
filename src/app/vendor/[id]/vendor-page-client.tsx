@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { QuoteRequestModal } from "@/components/vendor/quote-request-modal";
 import { StripePaymentModal } from "@/components/vendor/stripe-payment-modal";
 import { CustomerOrderModal } from "@/components/vendor/customer-order-modal";
 import { AboutTabContent } from "@/components/vendor/tabs/about-tab-content";
@@ -10,11 +12,7 @@ import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-conten
 import { useServiceCheckout } from "@/hooks/use-service-checkout";
 import { getTradeLabel } from "@/constants/trade-translations";
 import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
-import {
-  SOVEUR_ANDROID_PLAY_STORE_URL,
-  SOVEUR_IOS_APP_STORE_URL,
-  SOVEUR_MOBILE_STORE_BADGES,
-} from "@/lib/soveur-app-download-links";
+import { SOVEUR_MOBILE_STORE_BADGES } from "@/lib/soveur-app-download-links";
 import type { Vendor, VendorService } from "./vendor.types";
 import { VendorTabs, type VendorTabId } from "./vendor-tabs";
 
@@ -124,13 +122,6 @@ function formatServicePrice(service: VendorService) {
   }
 }
 
-// Quotes are requested from the mobile app, where the client is signed in
-function openAppStore() {
-  window.location.href = /android/i.test(navigator.userAgent)
-    ? SOVEUR_ANDROID_PLAY_STORE_URL
-    : SOVEUR_IOS_APP_STORE_URL;
-}
-
 export function VendorPageClient({
   vendor,
   initialServices,
@@ -155,6 +146,12 @@ export function VendorPageClient({
   } = useVendorTabsData(vendor.id, activeTab, initialServices);
 
   const checkout = useServiceCheckout(vendor.id, selectedService);
+  const router = useRouter();
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
+  const quoteServices = useMemo(
+    () => initialServices.filter((service) => service.serviceType === "QUOTE"),
+    [initialServices],
+  );
 
   const images = useMemo(
     () => (vendor.vendorImages ?? []).slice().sort((a, b) => a.order - b.order),
@@ -362,14 +359,11 @@ export function VendorPageClient({
           <div className="sm:mx-auto sm:max-w-sm">
             <button
               type="button"
-              onClick={openAppStore}
+              onClick={() => setIsQuoteModalOpen(true)}
               className="w-full rounded-full bg-[#1f2436] px-5 py-4 text-sm font-semibold tracking-wide text-white"
             >
-              Demander un devis dans l’app
+              Demander un devis
             </button>
-            <p className="mt-2 text-center text-xs text-[#6b7280]">
-              Ce service est sur devis : fais ta demande depuis l’app Soveur.
-            </p>
           </div>
         </div>
       ) : selectedService ? (
@@ -532,6 +526,16 @@ export function VendorPageClient({
         }}
         onSubmit={checkout.submitCustomerDetails}
       />
+
+      {isQuoteModalOpen && selectedService?.service.serviceType === "QUOTE" ? (
+        <QuoteRequestModal
+          vendorName={vendor.name}
+          services={quoteServices}
+          initialServiceId={selectedService.service.id}
+          onClose={() => setIsQuoteModalOpen(false)}
+          onRequested={(accessToken) => router.push(`/devis/${accessToken}?sent=1`)}
+        />
+      ) : null}
 
       {checkout.paymentClientSecret ? (
         <StripePaymentModal

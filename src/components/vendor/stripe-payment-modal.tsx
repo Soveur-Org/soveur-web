@@ -8,6 +8,8 @@ import { loadStripe } from "@stripe/stripe-js";
 type StripePaymentModalProps = {
   clientSecret: string;
   onClose: () => void;
+  // Page opened once the payment succeeds (defaults to the generic success page)
+  successPath?: string;
 };
 
 function getStripePromise() {
@@ -16,7 +18,13 @@ function getStripePromise() {
   return loadStripe(key);
 }
 
-function PaymentForm({ onClose }: { onClose: () => void }) {
+function PaymentForm({
+  onClose,
+  successPath,
+}: {
+  onClose: () => void;
+  successPath: string;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -33,7 +41,7 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
     const result = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/payment/success`,
+        return_url: `${window.location.origin}${successPath}`,
       },
       redirect: "if_required",
     });
@@ -46,7 +54,7 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
 
     setIsSubmitting(false);
     onClose();
-    router.push("/payment/success");
+    router.push(successPath);
   };
 
   return (
@@ -72,7 +80,11 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModalProps) {
+export function StripePaymentModal({
+  clientSecret,
+  onClose,
+  successPath = "/payment/success",
+}: StripePaymentModalProps) {
   const stripePromise = useMemo(() => getStripePromise(), []);
   const normalizedClientSecret = clientSecret.trim();
   const isPaymentElementSecret =
@@ -127,7 +139,7 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
           </button>
         </div>
         <Elements stripe={stripePromise} options={{ clientSecret: normalizedClientSecret }}>
-          <PaymentForm onClose={onClose} />
+          <PaymentForm onClose={onClose} successPath={successPath} />
         </Elements>
       </section>
     </div>

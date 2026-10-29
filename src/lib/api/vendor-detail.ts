@@ -35,7 +35,7 @@ function normalizeApiMessage(message: string) {
   return message;
 }
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getBaseUrl()}${path}`, {
     ...init,
     headers: {
