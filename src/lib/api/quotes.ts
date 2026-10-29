@@ -38,6 +38,7 @@ export type Quote = {
   balanceDue: number;
   vendorMessage: string | null;
   declineReason: string | null;
+  sentAt: string | null;
   validUntil: string | null;
   isExpired: boolean;
   service: { id: string; name: string };
@@ -68,6 +69,11 @@ export async function requestGuestQuote(payload: GuestQuotePayload) {
 
 export async function fetchQuoteByToken(token: string) {
   return fetchJson<Quote>(`/quotes/access/${encodeURIComponent(token)}`);
+}
+
+/** Direct link to the PDF, served by the API (only once the quote was sent). */
+export function getQuotePdfUrl(token: string) {
+  return `${process.env.NEXT_PUBLIC_API_BASE_URL ?? ""}/quotes/access/${encodeURIComponent(token)}/pdf`;
 }
 
 export async function acceptQuoteByToken(token: string) {

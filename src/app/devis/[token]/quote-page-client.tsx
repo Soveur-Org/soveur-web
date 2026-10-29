@@ -6,6 +6,7 @@ import {
   acceptQuoteByToken,
   cancelQuoteByToken,
   fetchQuoteByToken,
+  getQuotePdfUrl,
   payQuoteBalanceByToken,
   rejectQuoteByToken,
   type Quote,
@@ -234,6 +235,29 @@ export function QuotePageClient({
               </div>
             </div>
           </section>
+        ) : null}
+
+        {quote.sentAt ? (
+          <a
+            href={getQuotePdfUrl(token)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-[#d8dbe5] px-5 py-3 text-sm font-semibold text-[#1f2436]"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" />
+            </svg>
+            Télécharger le devis
+          </a>
         ) : null}
 
         {quote.vendorMessage && isPriced ? (
