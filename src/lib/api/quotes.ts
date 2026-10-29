@@ -20,6 +20,12 @@ export type QuoteLine = {
   unitPrice: number;
 };
 
+export type QuotePayment = {
+  kind: "DEPOSIT" | "BALANCE" | "FULL" | null;
+  amount: number;
+  paidAt: string | null;
+};
+
 export type Quote = {
   id: string;
   reference: string;
@@ -40,7 +46,9 @@ export type Quote = {
   declineReason: string | null;
   sentAt: string | null;
   validUntil: string | null;
+  paidAt: string | null;
   isExpired: boolean;
+  payments: QuotePayment[];
   service: { id: string; name: string };
   vendor: { id: string; name: string; photo: string | null };
   lines: QuoteLine[];
@@ -58,7 +66,7 @@ export type GuestQuotePayload = {
   phone?: string;
 };
 
-type QuotePayment = { clientSecret: string; amount: number };
+type QuotePaymentIntent = { clientSecret: string; amount: number };
 
 export async function requestGuestQuote(payload: GuestQuotePayload) {
   return fetchJson<Quote & { accessToken: string }>("/quotes/guest", {
@@ -77,14 +85,14 @@ export function getQuotePdfUrl(token: string) {
 }
 
 export async function acceptQuoteByToken(token: string) {
-  return fetchJson<QuotePayment>(
+  return fetchJson<QuotePaymentIntent>(
     `/quotes/access/${encodeURIComponent(token)}/accept`,
     { method: "POST" },
   );
 }
 
 export async function payQuoteBalanceByToken(token: string) {
-  return fetchJson<QuotePayment>(
+  return fetchJson<QuotePaymentIntent>(
     `/quotes/access/${encodeURIComponent(token)}/pay-balance`,
     { method: "POST" },
   );

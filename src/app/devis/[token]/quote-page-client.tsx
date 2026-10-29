@@ -11,6 +11,7 @@ import {
   rejectQuoteByToken,
   type Quote,
   type QuoteLine,
+  type QuotePayment,
   type QuoteStatus,
 } from "@/lib/api/quotes";
 
@@ -20,7 +21,8 @@ const REFRESH_AFTER_PAYMENT_MS = 2500;
 const STATUS_LABELS: Record<QuoteStatus, { label: string; className: string }> = {
   REQUESTED: { label: "Demandé", className: "bg-[#fff4e5] text-[#b25e00]" },
   SENT: { label: "À valider", className: "bg-[#e8f1ff] text-[#0055cc]" },
-  ACCEPTED: { label: "Accepté", className: "bg-[#e7f8ee] text-[#1e7b45]" },
+  // Deposit paid, balance still due: a waiting state, not a finished one
+  ACCEPTED: { label: "Acompte payé", className: "bg-[#f1eafe] text-[#6b3fb8]" },
   PAID: { label: "Payé", className: "bg-[#e7f8ee] text-[#1e7b45]" },
   DECLINED: { label: "Refusé par le pro", className: "bg-[#f2f2f2] text-[#666666]" },
   REJECTED: { label: "Refusé", className: "bg-[#f2f2f2] text-[#666666]" },
@@ -50,6 +52,40 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
+const PAYMENT_LABELS: Record<NonNullable<QuotePayment["kind"]>, string> = {
+  DEPOSIT: "Acompte payé le",
+  BALANCE: "Solde payé le",
+  FULL: "Payé le",
+};
+
+function formatLongDate(value: string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function getPaymentRows(quote: Quote): { label: string; amount: number }[] {
+  const rows = quote.payments.map((payment) => ({
+    label: `${PAYMENT_LABELS[payment.kind ?? "FULL"]} ${
+      payment.paidAt ? formatLongDate(payment.paidAt) : ""
+    }`.trim(),
+    amount: payment.amount,
+  }));
+  // Balance collected outside the app by the professional
+  const collectedOutside = Math.round((quote.total - quote.amountPaid) * 100) / 100;
+  if (quote.status === "PAID" && collectedOutside > 0) {
+    rows.push({
+      label: `Solde encaissé par le pro${
+        quote.paidAt ? ` le ${formatLongDate(quote.paidAt)}` : ""
+      }`,
+      amount: collectedOutside,
+    });
+  }
+  return rows;
+}
+
 function formatLineDetail(line: QuoteLine): string {
   if (line.detail) return line.detail;
   if (!line.unit && line.quantity === 1) return "Forfait";
@@ -68,12 +104,6 @@ function getInfo(quote: Quote): string | null {
             quote.total - quote.depositAmount,
           )} se règle ensuite.`
         : `Tu règles la totalité, ${formatEuro(quote.total)}, en signant.`;
-    case "ACCEPTED":
-      return `Acompte de ${formatEuro(quote.amountPaid)} réglé. Reste à payer : ${formatEuro(
-        quote.balanceDue,
-      )}.`;
-    case "PAID":
-      return "Devis entièrement réglé. Merci !";
     case "DECLINED":
       return [`${quote.vendor.name} ne peut pas donner suite à ta demande.`, quote.declineReason]
         .filter(Boolean)
@@ -169,6 +199,7 @@ export function QuotePageClient({
   const canPayBalance = quote.status === "ACCEPTED" && quote.balanceDue > 0;
   const canCancel = quote.status === "REQUESTED" || quote.status === "SENT";
   const info = getInfo(quote);
+  const paymentRows = getPaymentRows(quote);
   const timingLabel =
     quote.timing === "DATE" && quote.preferredDate
       ? `Le ${formatDate(quote.preferredDate)}`
@@ -234,6 +265,30 @@ export function QuotePageClient({
                 <span className="text-2xl font-bold">{formatEuro(quote.total)}</span>
               </div>
             </div>
+          </section>
+        ) : null}
+
+        {paymentRows.length > 0 ? (
+          <section className="mt-4 space-y-2 rounded-2xl border border-[#eceff5] p-4 text-sm">
+            {paymentRows.map((row) => (
+              <div key={row.label} className="flex items-center justify-between gap-3">
+                <span className="flex items-center gap-2 font-semibold">
+                  <span className="text-[#1e7b45]" aria-hidden="true">
+                    ✓
+                  </span>
+                  {row.label}
+                </span>
+                <span className="font-bold">{formatEuro(row.amount)}</span>
+              </div>
+            ))}
+            {quote.status === "ACCEPTED" && quote.balanceDue > 0 ? (
+              <div className="flex items-center justify-between gap-3 border-t border-[#eceff5] pt-2">
+                <span className="font-bold">Reste à payer</span>
+                <span className="text-base font-bold">{formatEuro(quote.balanceDue)}</span>
+              </div>
+            ) : quote.status === "PAID" ? (
+              <p className="font-bold text-[#1e7b45]">Devis entièrement payé</p>
+            ) : null}
           </section>
         ) : null}
 
