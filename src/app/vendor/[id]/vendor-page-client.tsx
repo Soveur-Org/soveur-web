@@ -10,7 +10,11 @@ import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-conten
 import { useServiceCheckout } from "@/hooks/use-service-checkout";
 import { getTradeLabel } from "@/constants/trade-translations";
 import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
-import { SOVEUR_MOBILE_STORE_BADGES } from "@/lib/soveur-app-download-links";
+import {
+  SOVEUR_ANDROID_PLAY_STORE_URL,
+  SOVEUR_IOS_APP_STORE_URL,
+  SOVEUR_MOBILE_STORE_BADGES,
+} from "@/lib/soveur-app-download-links";
 import type { Vendor, VendorService } from "./vendor.types";
 import { VendorTabs, type VendorTabId } from "./vendor-tabs";
 
@@ -106,6 +110,7 @@ function formatDate(value?: string) {
 }
 
 function formatServicePrice(service: VendorService) {
+  if (service.serviceType === "QUOTE") return "Sur devis";
   if (typeof service.price !== "number") return null;
   const currency = "EUR";
   try {
@@ -117,6 +122,13 @@ function formatServicePrice(service: VendorService) {
   } catch {
     return `${service.price} ${currency}`;
   }
+}
+
+// Quotes are requested from the mobile app, where the client is signed in
+function openAppStore() {
+  window.location.href = /android/i.test(navigator.userAgent)
+    ? SOVEUR_ANDROID_PLAY_STORE_URL
+    : SOVEUR_IOS_APP_STORE_URL;
 }
 
 export function VendorPageClient({
@@ -345,7 +357,22 @@ export function VendorPageClient({
         </section>
       </article>
 
-      {selectedService ? (
+      {selectedService?.service.serviceType === "QUOTE" ? (
+        <div className="fixed inset-x-0 bottom-0 z-30 p-4">
+          <div className="sm:mx-auto sm:max-w-sm">
+            <button
+              type="button"
+              onClick={openAppStore}
+              className="w-full rounded-full bg-[#1f2436] px-5 py-4 text-sm font-semibold tracking-wide text-white"
+            >
+              Demander un devis dans l’app
+            </button>
+            <p className="mt-2 text-center text-xs text-[#6b7280]">
+              Ce service est sur devis : fais ta demande depuis l’app Soveur.
+            </p>
+          </div>
+        </div>
+      ) : selectedService ? (
         <div className="fixed inset-x-0 bottom-0 z-30 p-4">
           <div className="sm:mx-auto sm:max-w-sm">
             <button
