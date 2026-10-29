@@ -8,6 +8,7 @@ import { GalleryTabContent } from "@/components/vendor/tabs/gallery-tab-content"
 import { ReviewsTabContent } from "@/components/vendor/tabs/reviews-tab-content";
 import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-content";
 import { useServiceCheckout } from "@/hooks/use-service-checkout";
+import { getTradeLabel } from "@/constants/trade-translations";
 import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
 import { SOVEUR_MOBILE_STORE_BADGES } from "@/lib/soveur-app-download-links";
 import type { Vendor, VendorService } from "./vendor.types";
@@ -272,6 +273,18 @@ export function VendorPageClient({
               <h1 className="text-[26px] font-semibold leading-tight">
                 {vendor.name}
               </h1>
+              {vendor.trades?.length ? (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {vendor.trades.map((trade) => (
+                    <span
+                      key={trade.id}
+                      className="rounded-full bg-[#f5f5f5] px-2.5 py-1 text-xs font-medium text-[#1b1f2f]"
+                    >
+                      {getTradeLabel(trade)}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {formatAddress(vendor) ? (
                 <p className="mt-1 text-sm text-[#6d7286]">
                   {formatAddress(vendor)}

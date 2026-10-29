@@ -12,6 +12,12 @@ export type Slot = {
   active: boolean;
 };
 
+export type VendorTrade = {
+  id: string;
+  trade: string;
+  customName?: string | null;
+};
+
 export type Vendor = {
   id: string;
   name: string;
@@ -21,6 +27,7 @@ export type Vendor = {
   reviewCount: number | null;
   averageRating: number | null;
   vendorImages?: VendorImage[];
+  trades?: VendorTrade[];
   location?: {
     id: string;
     name: string;
