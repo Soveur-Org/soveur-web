@@ -124,6 +124,13 @@ export async function fetchVendorById(vendorId: string): Promise<Vendor> {
   return extractObject(payload);
 }
 
+export async function fetchVendorBySlug(slug: string): Promise<Vendor> {
+  const payload = await fetchJson<MaybeData<Vendor>>(
+    `/vendors/slug/${encodeURIComponent(slug)}`,
+  );
+  return extractObject(payload);
+}
+
 export async function fetchVendorServices(vendorId: string): Promise<VendorService[]> {
   const payload = await fetchJson<MaybeData<VendorService[]>>(
     `/services/vendor/${vendorId}?page=1&limit=100`,
