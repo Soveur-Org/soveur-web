@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
+import { AppDownloadBanner } from "@/components/vendor/app-download-banner";
 import { ImageCarousel } from "@/components/vendor/image-carousel";
 import { QuoteRequestModal } from "@/components/vendor/quote-request-modal";
 import { RatingStars } from "@/components/vendor/rating-stars";
@@ -14,7 +15,6 @@ import { ServicesTabContent } from "@/components/vendor/tabs/services-tab-conten
 import { useServiceCheckout } from "@/hooks/use-service-checkout";
 import { getTradeLabel } from "@/constants/trade-translations";
 import { useVendorTabsData } from "@/hooks/use-vendor-tabs-data";
-import { SOVEUR_MOBILE_STORE_BADGES } from "@/lib/soveur-app-download-links";
 import { buildOpeningGroups } from "@/lib/vendor-opening-hours";
 import type { Vendor, VendorService } from "./vendor.types";
 import { VendorTabs, type VendorTabId } from "./vendor-tabs";
@@ -150,37 +150,10 @@ export function VendorPageClient({
 
   return (
     <main className="min-h-screen bg-white text-ink">
-      <aside className="border-b border-line bg-white px-4 py-3">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-4 lg:justify-between lg:px-8">
-          <div className="hidden items-center gap-2 lg:flex">
-            <img src="/icon.png" alt="" width={36} height={36} />
-            <span className="text-xl font-bold text-primary">Soveur</span>
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {SOVEUR_MOBILE_STORE_BADGES.map((store) => (
-              <a
-                key={store.imageSrc}
-                href={store.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex shrink-0 transition-opacity hover:opacity-90 active:opacity-80"
-              >
-                <img
-                  src={store.imageSrc}
-                  alt={store.label}
-                  className="h-10 w-auto max-w-[140px] object-contain object-left"
-                  width={140}
-                  height={40}
-                  loading="lazy"
-                />
-              </a>
-            ))}
-          </div>
-        </div>
-      </aside>
+      <AppDownloadBanner />
 
       <article className="w-full pb-28 lg:mx-auto lg:grid lg:max-w-6xl lg:grid-cols-2 lg:items-start lg:gap-12 lg:px-8 lg:pb-8 lg:pt-8">
-        <div className="lg:sticky lg:top-8">
+        <div className="lg:sticky lg:top-24">
           {images.length > 0 ? (
             <ImageCarousel
               images={images.map((image) => image.url)}
