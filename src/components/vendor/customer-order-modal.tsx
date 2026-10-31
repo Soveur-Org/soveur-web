@@ -51,7 +51,7 @@ export function CustomerOrderModal({
             <button
               type="button"
               onClick={onBack}
-              className="text-lg font-semibold text-[#7f8395]"
+              className="text-lg font-semibold text-ink-secondary"
               aria-label="Retour"
             >
               ←
@@ -59,8 +59,8 @@ export function CustomerOrderModal({
           ) : (
             <span />
           )}
-          <h3 className="text-lg font-semibold text-[#1f2436]">Vos informations</h3>
-          <button type="button" onClick={onClose} className="text-[#7f8395]">
+          <h3 className="text-lg font-semibold text-primary">Vos informations</h3>
+          <button type="button" onClick={onClose} className="text-ink-secondary">
             ×
           </button>
         </div>
@@ -74,7 +74,7 @@ export function CustomerOrderModal({
               type="email"
               value={values.customerEmail}
               onChange={(event) => onChange({ customerEmail: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-[#d8dbe5] px-3 py-2 outline-none"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 outline-none"
             />
           </label>
 
@@ -84,7 +84,7 @@ export function CustomerOrderModal({
               type="text"
               value={values.customerName}
               onChange={(event) => onChange({ customerName: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-[#d8dbe5] px-3 py-2 outline-none"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 outline-none"
             />
           </label>
 
@@ -94,7 +94,7 @@ export function CustomerOrderModal({
               type="tel"
               value={values.customerPhone}
               onChange={(event) => onChange({ customerPhone: event.target.value })}
-              className="mt-1 w-full rounded-lg border border-[#d8dbe5] px-3 py-2 outline-none"
+              className="mt-1 w-full rounded-lg border border-line px-3 py-2 outline-none"
             />
           </label>
 
@@ -121,7 +121,7 @@ export function CustomerOrderModal({
                 value={values.bookingNotes}
                 onChange={(event) => onChange({ bookingNotes: event.target.value })}
                 placeholder="Ex: merci d'arriver 10 minutes en avance"
-                className="mt-1 min-h-20 w-full rounded-lg border border-[#d8dbe5] px-3 py-2 outline-none"
+                className="mt-1 min-h-20 w-full rounded-lg border border-line px-3 py-2 outline-none"
               />
             </label>
           ) : null}
@@ -131,8 +131,8 @@ export function CustomerOrderModal({
           type="button"
           onClick={onSubmit}
           disabled={isSubmitting}
-          className={`mt-5 w-full rounded-full px-5 py-3 text-sm font-semibold text-white ${
-            isSubmitting ? "bg-[#b8bcc9]" : "bg-[#1f2436]"
+          className={`mt-5 w-full rounded-[15px] px-5 py-4 text-sm font-bold text-white ${
+            isSubmitting ? "bg-ink-tertiary" : "bg-primary"
           }`}
         >
           {isSubmitting

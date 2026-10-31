@@ -7,17 +7,17 @@ type GalleryTabContentProps = {
 
 export function GalleryTabContent({ images, vendorName }: GalleryTabContentProps) {
   return (
-    <section className="pb-20">
+    <section className="py-3">
       {images.length === 0 ? (
-        <p className="text-sm text-[#7f8395]">Aucune image dans la galerie.</p>
+        <p className="py-4 text-center text-sm text-ink-secondary">Aucune image dans la galerie.</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           {images.map((image) => (
             <img
               key={image.id}
               src={image.url}
               alt={vendorName}
-              className="h-28 w-full rounded-xl object-cover"
+              className="aspect-square w-full rounded-[20px] object-cover"
             />
           ))}
         </div>

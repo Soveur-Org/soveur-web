@@ -105,6 +105,7 @@ export type VendorReview = {
     firstName?: string | null;
     lastName?: string | null;
     name?: string | null;
+    photoUrl?: string | null;
   } | null;
 };
 

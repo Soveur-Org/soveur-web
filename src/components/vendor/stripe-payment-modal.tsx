@@ -70,8 +70,8 @@ function PaymentForm({
       <button
         type="submit"
         disabled={!stripe || isSubmitting}
-        className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white ${
-          !stripe || isSubmitting ? "bg-[#b8bcc9]" : "bg-[#1f2436]"
+        className={`w-full rounded-[15px] px-5 py-4 text-sm font-bold text-white ${
+          !stripe || isSubmitting ? "bg-ink-tertiary" : "bg-primary"
         }`}
       >
         {isSubmitting ? "Paiement en cours..." : "Payer maintenant"}
@@ -100,7 +100,7 @@ export function StripePaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-full bg-[#1f2436] px-4 py-2 text-sm text-white"
+            className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-white"
           >
             Fermer
           </button>
@@ -120,7 +120,7 @@ export function StripePaymentModal({
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-full bg-[#1f2436] px-4 py-2 text-sm text-white"
+            className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-white"
           >
             Fermer
           </button>
@@ -133,8 +133,8 @@ export function StripePaymentModal({
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <section className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[#1f2436]">Paiement securise</h3>
-          <button type="button" onClick={onClose} className="text-[#6d7286]">
+          <h3 className="text-lg font-semibold text-primary">Paiement securise</h3>
+          <button type="button" onClick={onClose} className="text-ink-secondary">
             ×
           </button>
         </div>

@@ -6,7 +6,7 @@ type TabItem = {
 };
 
 const TABS: TabItem[] = [
-  { id: "about", label: "A propos" },
+  { id: "about", label: "À propos" },
   { id: "services", label: "Services" },
   { id: "gallery", label: "Galerie" },
   { id: "reviews", label: "Avis" },
@@ -27,7 +27,10 @@ export function VendorTabs({ activeTab, onChange, showServices, showGallery }: V
   });
 
   return (
-    <nav className="mb-4 flex gap-2 overflow-x-auto pb-1 text-sm whitespace-nowrap" aria-label="Sections vendeur">
+    <nav
+      className="mt-4 flex gap-2 overflow-x-auto text-sm whitespace-nowrap [scrollbar-width:none] lg:mt-0 [&::-webkit-scrollbar]:hidden"
+      aria-label="Sections vendeur"
+    >
       {visibleTabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -35,8 +38,8 @@ export function VendorTabs({ activeTab, onChange, showServices, showGallery }: V
             key={tab.id}
             type="button"
             onClick={() => onChange(tab.id)}
-            className={`rounded-full px-3 py-1.5 transition-colors ${
-              isActive ? "bg-[#1f2436] text-white" : "text-[#7f8395]"
+            className={`shrink-0 rounded-[20px] px-[17px] py-2.5 transition-colors ${
+              isActive ? "bg-ink font-bold text-white" : "text-ink hover:bg-surface"
             }`}
           >
             {tab.label}
