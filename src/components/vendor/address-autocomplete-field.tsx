@@ -104,11 +104,11 @@ export function AddressAutocompleteField({
         value={value}
         onChange={(event) => onInputChange(event.target.value)}
         placeholder="Saisissez votre adresse"
-        className="w-full rounded-lg border border-[#d8dbe5] px-3 py-2 text-sm outline-none"
+        className="w-full rounded-lg border border-line px-3 py-2 text-sm outline-none"
       />
-      {isLoading ? <p className="mt-1 text-xs text-[#7f8395]">Recherche...</p> : null}
+      {isLoading ? <p className="mt-1 text-xs text-ink-secondary">Recherche...</p> : null}
       {suggestions.length > 0 ? (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-[#e6e8ef] bg-white shadow-lg">
+        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-line bg-white shadow-lg">
           {suggestions.map((item) => (
             <li key={`${item.lat}-${item.lon}`}>
               <button
@@ -120,7 +120,7 @@ export function AddressAutocompleteField({
                   onSelectLocation(location);
                   setSuggestions([]);
                 }}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-[#f3f4f6]"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-surface"
               >
                 {item.display_name}
               </button>

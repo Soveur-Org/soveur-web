@@ -8,6 +8,8 @@ import { loadStripe } from "@stripe/stripe-js";
 type StripePaymentModalProps = {
   clientSecret: string;
   onClose: () => void;
+  // Page opened once the payment succeeds (defaults to the generic success page)
+  successPath?: string;
 };
 
 function getStripePromise() {
@@ -16,7 +18,13 @@ function getStripePromise() {
   return loadStripe(key);
 }
 
-function PaymentForm({ onClose }: { onClose: () => void }) {
+function PaymentForm({
+  onClose,
+  successPath,
+}: {
+  onClose: () => void;
+  successPath: string;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const router = useRouter();
@@ -33,7 +41,7 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
     const result = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/payment/success`,
+        return_url: `${window.location.origin}${successPath}`,
       },
       redirect: "if_required",
     });
@@ -46,7 +54,7 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
 
     setIsSubmitting(false);
     onClose();
-    router.push("/payment/success");
+    router.push(successPath);
   };
 
   return (
@@ -62,8 +70,8 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
       <button
         type="submit"
         disabled={!stripe || isSubmitting}
-        className={`w-full rounded-full px-5 py-3 text-sm font-semibold text-white ${
-          !stripe || isSubmitting ? "bg-[#b8bcc9]" : "bg-[#1f2436]"
+        className={`w-full rounded-[15px] px-5 py-4 text-sm font-bold text-white ${
+          !stripe || isSubmitting ? "bg-ink-tertiary" : "bg-primary"
         }`}
       >
         {isSubmitting ? "Paiement en cours..." : "Payer maintenant"}
@@ -72,7 +80,11 @@ function PaymentForm({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModalProps) {
+export function StripePaymentModal({
+  clientSecret,
+  onClose,
+  successPath = "/payment/success",
+}: StripePaymentModalProps) {
   const stripePromise = useMemo(() => getStripePromise(), []);
   const normalizedClientSecret = clientSecret.trim();
   const isPaymentElementSecret =
@@ -88,7 +100,7 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-full bg-[#1f2436] px-4 py-2 text-sm text-white"
+            className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-white"
           >
             Fermer
           </button>
@@ -108,7 +120,7 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
           <button
             type="button"
             onClick={onClose}
-            className="mt-4 rounded-full bg-[#1f2436] px-4 py-2 text-sm text-white"
+            className="mt-4 rounded-full bg-primary px-4 py-2 text-sm text-white"
           >
             Fermer
           </button>
@@ -121,13 +133,13 @@ export function StripePaymentModal({ clientSecret, onClose }: StripePaymentModal
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <section className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-[#1f2436]">Paiement securise</h3>
-          <button type="button" onClick={onClose} className="text-[#6d7286]">
+          <h3 className="text-lg font-semibold text-primary">Paiement securise</h3>
+          <button type="button" onClick={onClose} className="text-ink-secondary">
             ×
           </button>
         </div>
         <Elements stripe={stripePromise} options={{ clientSecret: normalizedClientSecret }}>
-          <PaymentForm onClose={onClose} />
+          <PaymentForm onClose={onClose} successPath={successPath} />
         </Elements>
       </section>
     </div>

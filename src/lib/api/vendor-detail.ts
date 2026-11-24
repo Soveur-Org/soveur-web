@@ -35,7 +35,7 @@ function normalizeApiMessage(message: string) {
   return message;
 }
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getBaseUrl()}${path}`, {
     ...init,
     headers: {
@@ -121,6 +121,13 @@ function slotFromObject(item: Record<string, unknown>, idx: number): BookingSlot
 
 export async function fetchVendorById(vendorId: string): Promise<Vendor> {
   const payload = await fetchJson<MaybeData<Vendor>>(`/vendors/${vendorId}`);
+  return extractObject(payload);
+}
+
+export async function fetchVendorBySlug(slug: string): Promise<Vendor> {
+  const payload = await fetchJson<MaybeData<Vendor>>(
+    `/vendors/slug/${encodeURIComponent(slug)}`,
+  );
   return extractObject(payload);
 }
 
