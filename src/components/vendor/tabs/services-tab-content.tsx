@@ -42,9 +42,7 @@ export function ServicesTabContent({
       {servicesState === "success"
         ? serviceCategories.map((category) => (
             <div key={category.id} className="space-y-3">
-              {category.name ? (
-                <h3 className="text-lg font-bold text-ink">{category.name}</h3>
-              ) : null}
+              <h3 className="text-lg font-bold text-ink">{category.name}</h3>
               <ul className="space-y-2.5">
                 {category.services.map((service) => {
                   const isSelected =
