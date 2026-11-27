@@ -1,6 +1,5 @@
 import type {
   BookingSlot,
-  Category,
   ClientLocation,
   Vendor,
   VendorReview,
@@ -136,11 +135,6 @@ export async function fetchVendorServices(vendorId: string): Promise<VendorServi
     `/services/vendor/${vendorId}?page=1&limit=100`,
   );
   return extractArray(payload).filter((service) => service.visible !== false);
-}
-
-export async function fetchCategories(): Promise<Category[]> {
-  const payload = await fetchJson<MaybeData<Category[]>>(`/categories?page=1&limit=100`);
-  return extractArray(payload);
 }
 
 export async function fetchVendorReviews(vendorId: string): Promise<VendorReview[]> {

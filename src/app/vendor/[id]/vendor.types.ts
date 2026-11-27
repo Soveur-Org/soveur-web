@@ -16,6 +16,8 @@ export type VendorTrade = {
   id: string;
   trade: string;
   customName?: string | null;
+  // Libellé français renvoyé par l'API (customName pour "other")
+  label?: string;
 };
 
 export type Vendor = {
@@ -72,21 +74,6 @@ export type ServiceCategoryGroup = {
 
 export type VendorServicesResponse = {
   data: VendorService[];
-  meta?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
-
-export type Category = {
-  id: string;
-  name: string;
-};
-
-export type CategoriesResponse = {
-  data: Category[];
   meta?: {
     page: number;
     limit: number;
